@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicación de Salud Escolar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.js"></script>
+    <!-- Librería para leer archivos Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5; /* Un gris más suave */
+        }
+        header {
+            background: linear-gradient(to right, #6366f1, #8b5cf6); /* Degradado púrpura-azul */
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        nav button {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        nav button.tab-active {
+            border-color: #4f46e5; /* Azul índigo más profundo */
+            color: #4f46e5;
+            background-color: #e0e7ff; /* Azul claro */
+            font-weight: 600;
+        }
+        nav button::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: transparent;
+            transition: background-color 0.3s ease;
+        }
+        nav button.tab-active::after {
+            background-color: #4f46e5;
+        }
+        .course-btn {
+            background-color: white;
+            border: 1px solid #d1d5db;
+            color: #4b5563;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .course-btn:hover {
+            background-color: #eef2ff; /* Azul muy claro al pasar el ratón */
+            border-color: #a5b4fc;
+            color: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .course-btn.course-btn-active {
+            background-color: #6366f1; /* Azul vibrante */
+            color: white;
+            border-color: #6366f1;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+        }
+        .course-btn.course-btn-active span:last-child {
+            background-color: white;
+            color: #6366f1;
+        }
+
+        .student-card {
+            background-color: white;
+            border-left: 6px solid; /* Para el color distintivo */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            transition: all 0.2s ease-in-out;
+        }
+        .student-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+        }
+        .student-card .avatar {
+            background-color: #e0f2fe; /* Azul claro */
+            color: #0369a1; /* Azul oscuro */
+            font-weight: 700;
+        }
+        .student-card .info-snippet {
+            color: #6b7280;
+        }
+
+        /* Colores para las mini-cards de alertas */
+        .alert-mini-card-red { background-color: #fee2e2; color: #ef4444; border-color: #fca5a5; } /* Rojo */
+        .alert-mini-card-orange { background-color: #fff7ed; color: #f97316; border-color: #fed7aa; } /* Naranja */
+        .alert-mini-card-yellow { background-color: #fef9c3; color: #b45309; border-color: #fde68a; } /* Amarillo */
+        .alert-mini-card-green { background-color: #f0fdf4; color: #15803d; border-color: #bbf7d0; } /* Verde */
+        .alert-mini-card-blue { background-color: #e0f2fe; color: #0369a1; border-color: #bfdbfe; } /* Azul */
+        .alert-mini-card {
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Estilos del modal de detalles */
+        #detail-modal-backdrop {
+            backdrop-filter: blur(5px);
+            background-color: rgba(0,0,0,0.6);
+        }
+        #detail-modal-backdrop .modal-content-container {
+            background: linear-gradient(to bottom right, #ffffff, #f7f9fc);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+        #detail-modal-backdrop h3 {
+            color: #4f46e5;
+        }
+        #detail-modal-backdrop .info-section {
+            background-color: #f8fafc; /* Gris muy claro */
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+        }
+        #detail-modal-backdrop .summary-section {
+            background-color: #fffaeb; /* Amarillo muy pálido */
+            border-left: 5px solid #f59e0b; /* Borde amarillo */
+        }
+        #detail-modal-backdrop .critical-action-section {
+            background-color: #fee2e2; /* Rojo muy pálido */
+            border-left: 5px solid #ef4444; /* Borde rojo */
+        }
+        #summary-output strong {
+            display: block;
+            font-size: 1.125rem; /* text-lg */
+            margin-top: 0.75rem; /* mt-3 */
+            color: #1f2937; /* gray-800 */
+        }
+        #summary-output ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+        }
+        #loading-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+        /* Estilos para la zona de importación */
+        .drop-zone {
+            border: 3px dashed #cbd5e1;
+            border-radius: 0.75rem;
+            padding: 2.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+        }
+        .drop-zone.drag-over {
+            border-color: #6366f1;
+            background-color: #eef2ff;
+        }
+        #import-results {
+            max-height: 250px;
+            overflow-y: auto;
+            background-color: #1f2937;
+            color: #d1d5db;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- Initial PIN Lock Screen -->
+    <div id="initial-pin-lock" class="fixed inset-0 bg-gray-800 z-50 flex flex-col items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm text-center">
+            <h3 class="text-2xl font-bold mb-2 text-gray-800">Acceso a la Aplicación</h3>
+            <p class="text-gray-600 mb-6">Por favor, introduce el PIN de acceso.</p>
+            <form id="initial-pin-form">
+                <input type="password" id="initial-pin-input" class="block w-full text-center text-3xl tracking-[.5em] p-3 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" maxlength="4" required autocomplete="off" autofocus>
+                <button type="submit" class="w-full mt-6 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold text-lg">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white z-40 flex flex-col items-center justify-center hidden">
+        <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24 mb-4 animate-spin" style="border-top-color: #6366f1;"></div>
+        <h2 class="text-center text-xl font-semibold text-gray-700">Conectando con la base de datos...</h2>
+        <p class="w-1/3 text-center text-gray-500">Esto solo tomará un momento.</p>
+    </div>
+
+
+    <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 hidden">
+        <header class="mb-8 p-6 text-white text-center relative">
+            <h1 class="text-4xl font-bold">Bienestar Escolar</h1>
+            <p class="text-lg mt-2">Gestión de la salud del alumnado con un enfoque proactivo</p>
+            <div class="absolute top-4 right-4 flex gap-2">
+                <button id="pdf-download-btn" class="hidden px-3 py-1 text-sm bg-white text-indigo-700 font-semibold rounded-lg shadow-md hover:bg-indigo-100 transition-colors duration-300">
+                    <i class="fas fa-file-pdf mr-2"></i>Descargar PDF
+                </button>
+                <button id="admin-toggle-btn" class="px-3 py-1 text-sm bg-yellow-400 text-yellow-900 font-semibold rounded-lg shadow-md hover:bg-yellow-500 transition-colors duration-300">
+                    <i class="fas fa-user-shield mr-2"></i>Admin
+                </button>
+            </div>
+        </header>
+
+        <nav class="flex justify-center gap-2 border-b-2 border-gray-200 mb-8 bg-white p-2 rounded-lg shadow-sm">
+            <button data-tab="main-tabs" data-target="infantil" class="py-3 px-4 font-medium text-gray-700 rounded-md hover:bg-gray-100">Infantil</button>
+            <button data-tab="main-tabs" data-target="primaria" class="py-3 px-4 font-medium text-gray-700 rounded-md hover:bg-gray-100">Primaria</button>
+            <button data-tab="main-tabs" data-target="eso" class="py-3 px-4 font-medium text-gray-700 rounded-md hover:bg-gray-100">ESO</button>
+            <button id="add-student-btn" data-tab="main-tabs" data-target="add-student" class="py-3 px-4 font-medium text-gray-700 rounded-md hover:bg-gray-100 hidden">
+                <i class="fas fa-plus-circle mr-2"></i>Añadir Estudiante
+            </button>
+             <button id="import-data-btn" data-tab="main-tabs" data-target="import-data" class="py-3 px-4 font-medium text-gray-700 rounded-md hover:bg-gray-100 hidden">
+                <i class="fas fa-file-import mr-2"></i>Importar Datos
+            </button>
+        </nav>
+
+        <main>
+            <!-- Contenedor para cursos de Infantil -->
+            <div id="infantil" class="tab-content hidden animate-fade-in">
+                <h2 class="text-2xl font-bold mb-5 text-gray-800"><i class="fas fa-child text-blue-500 mr-3"></i>Cursos de Infantil</h2>
+                <div id="courses-infantil" class="flex flex-wrap justify-center gap-4 mb-8">
+                    <!-- Los botones de los cursos se insertarán aquí -->
+                </div>
+            </div>
+
+            <!-- Contenedor para cursos de Primaria -->
+            <div id="primaria" class="tab-content hidden animate-fade-in">
+                <h2 class="text-2xl font-bold mb-5 text-gray-800"><i class="fas fa-school text-green-500 mr-3"></i>Cursos de Primaria</h2>
+                <div id="courses-primaria" class="flex flex-wrap justify-center gap-4 mb-8">
+                    <!-- Los botones de los cursos se insertarán aquí -->
+                </div>
+            </div>
+
+            <!-- Contenedor para cursos de ESO -->
+            <div id="eso" class="tab-content hidden animate-fade-in">
+                <h2 class="text-2xl font-bold mb-5 text-gray-800"><i class="fas fa-user-graduate text-purple-500 mr-3"></i>Cursos de E.S.O.</h2>
+                <div id="courses-eso" class="flex flex-wrap justify-center gap-4 mb-8">
+                    <!-- Los botones de los cursos se insertarán aquí -->
+                </div>
+            </div>
+            
+            <!-- Contenedor para añadir estudiante -->
+            <div id="add-student" class="tab-content hidden animate-fade-in">
+                <h2 class="text-2xl font-bold mb-5 text-gray-800"><i class="fas fa-user-plus text-blue-500 mr-3"></i>Añadir Nuevo Estudiante</h2>
+                <form id="add-student-form" class="bg-white p-6 rounded-lg shadow-md space-y-4 max-w-2xl mx-auto">
+                    <div>
+                        <label for="student-name" class="block text-sm font-medium text-gray-700">Nombre Completo</label>
+                        <input type="text" id="student-name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="student-stage" class="block text-sm font-medium text-gray-700">Etapa</label>
+                            <select id="student-stage" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <option value="Infantil">Infantil</option>
+                                <option value="Primaria">Primaria</option>
+                                <option value="ESO">ESO</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="student-course" class="block text-sm font-medium text-gray-700">Curso</label>
+                            <select id="student-course" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <!-- Opciones cargadas dinámicamente -->
+                            </select>
+                        </div>
+                        <div id="new-course-container" class="hidden md:col-span-2">
+                            <label for="new-course-name" class="block text-sm font-medium text-gray-700">Nombre del Nuevo Curso</label>
+                            <input type="text" id="new-course-name" placeholder="Ej: 4º Primaria B" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="student-info" class="block text-sm font-medium text-gray-700">Información de Salud</label>
+                        <textarea id="student-info" rows="5" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required></textarea>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700">Nivel de Gravedad</label>
+                        <div class="mt-2 grid grid-cols-3 gap-3">
+                            <div>
+                                <label for="severity-high" class="flex cursor-pointer items-center justify-center rounded-md border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800 hover:bg-red-100 has-[:checked]:border-red-600 has-[:checked]:bg-red-200 has-[:checked]:ring-2 has-[:checked]:ring-red-500">
+                                    <input type="radio" name="severity" value="high" id="severity-high" class="sr-only" required>
+                                    <span>Riesgo Alto</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label for="severity-medium" class="flex cursor-pointer items-center justify-center rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm font-medium text-yellow-800 hover:bg-yellow-100 has-[:checked]:border-yellow-600 has-[:checked]:bg-yellow-200 has-[:checked]:ring-2 has-[:checked]:ring-yellow-500">
+                                    <input type="radio" name="severity" value="medium" id="severity-medium" class="sr-only">
+                                    <span>Atención</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label for="severity-low" class="flex cursor-pointer items-center justify-center rounded-md border border-green-300 bg-green-50 p-3 text-sm font-medium text-green-800 hover:bg-green-100 has-[:checked]:border-green-600 has-[:checked]:bg-green-200 has-[:checked]:ring-2 has-[:checked]:ring-green-500">
+                                    <input type="radio" name="severity" value="low" id="severity-low" class="sr-only">
+                                    <span>Sin Riesgo</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Añadir Estudiante
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+             <!-- Contenedor para importar datos -->
+            <div id="import-data" class="tab-content hidden animate-fade-in">
+                <h2 class="text-2xl font-bold mb-5 text-gray-800"><i class="fas fa-file-excel text-green-600 mr-3"></i>Importación Masiva de Datos</h2>
+                <div class="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto space-y-6">
+                    <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-md">
+                        <h3 class="font-bold mb-2">Instrucciones Importantes</h3>
+                        <ul class="list-disc list-inside space-y-1 text-sm">
+                             <li>Sube un único archivo en formato <strong>Excel (.xlsx)</strong>. Si tienes un PDF, conviértelo a Excel primero.</li>
+                            <li>El archivo Excel debe tener columnas con cabeceras específicas. Las <strong>imprescindibles</strong> son:
+                                <code class="bg-gray-200 text-gray-800 px-2 py-1 rounded text-xs font-mono">Nombre del Alumno/a</code>,
+                                <code class="bg-gray-200 text-gray-800 px-2 py-1 rounded text-xs font-mono">Grupo</code>, y
+                                <code class="bg-gray-200 text-gray-800 px-2 py-1 rounded text-xs font-mono">Estado</code>.
+                            </li>
+                            <li>La columna <strong>Grupo</strong> debe seguir el formato <code class="text-xs font-mono">1_infantil</code>, <code class="text-xs font-mono">4_primaria</code>, o <code class="text-xs font-mono">2_eso</code>.</li>
+                            <li>La columna <strong>Estado</strong> se usa para la gravedad y debe contener <code class="text-xs font-mono">Rojo</code> (Riesgo Alto), <code class="text-xs font-mono">Amarillo</code> (Atención) o <code class="text-xs font-mono">Verde</code> (Sin Riesgo).</li>
+                            <li>El resto de columnas del formulario se combinarán para crear la ficha de salud (ej: <code class="text-xs font-mono">Enfermedades que Padece</code>, <code class="text-xs font-mono">Alergias Conocidas</code>, <code class="text-xs font-mono">Móvil Tutor/a 1</code>, etc.).</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="drop-zone" class="drop-zone">
+                        <input type="file" id="file-input" class="hidden" accept=".xlsx">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600 font-semibold">Arrastra y suelta tu archivo Excel aquí</p>
+                        <p class="text-gray-500 text-sm mt-1">o</p>
+                        <button id="browse-btn" type="button" class="mt-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-sm hover:bg-indigo-700 transition">Selecciona un archivo</button>
+                        <p id="file-name" class="mt-3 text-sm font-medium text-gray-700"></p>
+                    </div>
+
+                    <button id="import-btn" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400" disabled>
+                        <i class="fas fa-cogs mr-2"></i>Procesar e Importar Datos
+                    </button>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Resultados de la Importación</h3>
+                        <div id="import-results" class="bg-gray-100 p-4 rounded-md min-h-[100px]">
+                            <p class="text-gray-500">Esperando archivo para procesar...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contenedor para la lista de estudiantes -->
+            <div id="student-list-container" class="mt-8">
+                <!-- La lista de estudiantes se inyectará aquí -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // This is sample data that will be used to seed the database if it's empty.
+        const schoolData = {
+            "Infantil": {
+                "1º Infantil": [
+                    { name: "Adrián H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Alonso M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Adrián S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Fabio F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Martín M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                "2º Infantil": [
+                    { name: "Andrés V.", info: "Enfermedad: Alergia a mosquitos y arañas. Síntomas: Hinchazón abultada en la zona afectada. Actuación: Aerius, aplicar frío y crema para picaduras. Contacto: Laura (649100661), José (639706440).", severity: "medium" },
+                    { name: "Helena D", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Fabio I.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Jimena M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Leyre S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Lucas H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Lucía H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Manuel B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Mario B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Mario M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Mateo M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Thiago C.", info: "Enfermedad: Diabetes tipo I. Síntomas: Hipoglucemia (Sudores, temblores - leve) o Hipoglucemia con pérdida de conocimiento (Desmayo - grave). Actuación: Si es leve, dar hidratos de carbono. Si es grave, administrar Glucagón.\nContacto: No especificado.", severity: "high" },
+                    { name: "Valentina R.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Yoel M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                "3º Infantil": [
+                    { name: "Alai F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Alejandro G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Alicia G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Álvaro F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Aritz F.", info: "Enfermedad: Alergia a las pipas. Síntomas: Erupción, problemas respiratorios. Actuación: Administrar Adrenalina. Contacto: Déborah (635344640).", severity: "high" },
+                    { name: "Axel F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Candela B.", info: "Enfermedad: Piel atópica (con brotes). Tratamiento habitual: Corticoides. Contacto: Jose (669610215), Sara (722852911).", severity: "medium" },
+                    { name: "Daniel A.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Darío I.", info: "Enfermedad: Alergia a proteína de leche, huevo, polen y gramíneas. Síntomas: Urticaria, vómitos. Actuación: Lavar y administrar Zasten 5ml y Estilsona imediatamente. Contacto: Elvira (661211335, 637834692).", severity: "high" },
+                    { name: "Emma R.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Hernán F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Izan M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Mario G.", info: "Enfermedad: Asma. Tratamiento habitual: Desloratadina 5ml, Ventolín, Seretide. Síntomas: Mucha tos. Actuación: Ventolín 100mg (2-3 puff), Seretide 25mg (1-2 puff). Contacto: Jonathan (618940992), María (673724999).", severity: "medium" },
+                    { name: "Olivia M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Valeria F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Valeria G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Vida R.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ]
+            },
+            "Primaria": {
+                "1º Primaria": [
+                    { name: "Adriana B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "África G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Aimee C.", info: "Enfermedad: Alergia estacional (polen).\nContacto: No especificado.", severity: "medium" },
+                    { name: "Alba B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Alejandro P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Candela M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Chloe S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Guillermo S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Irene G.", info: "Enfermedad: Asma. Tratamiento: Ventolín (2 puf) solo cuando está muy constipada. Contacto: Esther (659746060).", severity: "medium" },
+                    { name: "Isabel P.", info: "Enfermedad: Alergia a arañas, mosquitos y lana. Síntomas: Inflamación excesiva y rápida (leve), inflamación extendida (grave). Actuación: Aplicar stick de la mochila (leve), stick+frío y corticoides orales (grave). Contacto: Estela (657826609).", severity: "medium" },
+                    { name: "Jimena B.", info: "Enfermedad: Asma, alergia al polvo, polen, ácaros. Tratamiento: Seretide (2 puff), Sabultamol (2 puff). Síntomas: Tos crónica. Actuación: Ventolín (2 puf). Contacto: Jessica (633545510).", severity: "medium" },
+                    { name: "Jorge M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Lucas B.", info: "Información: Operado de hernia umbilical y fimosis. Indicación: No coger peso.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Renata G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Valeria B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Valeria V.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                "2º Primaria": [
+                    { name: "Abril F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Adrián C.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Alejandro B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Bruno N.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Daniel G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Dhulia A.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Emiliana P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Gisele H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "India G.", info: "Enfermedad: Leucemia linfoblástica.\nContacto: No especificado.", severity: "high" },
+                    { name: "Izán G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Judith B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Junior T.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Leo F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Lucas D.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Martina B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Matías A.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Matías P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Rodrigo P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Víctor S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                "3º Primaria": [
+                    { name: "Adriana J.", info: "Enfermedad: Alergia al polen.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Alba G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Camila R.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Cayetana B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Daniel J.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Diana H.", info: "Enfermedad: Pequeño soplo cardíaco, Lipoproteína activa.\nContacto: No especificado.", severity: "high" },
+                    { name: "Elías R.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Lucía M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Mahesh V.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "María L.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Martín S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Orión F.", info: "Enfermedad: Osteocondromatosis múltiple.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Thiago I.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                 "4º Primaria": [
+                    { name: "Alondra G.", info: "Enfermedad: Patología crónica bilateral (hipoacusia), alergia al polvo, ácaros, mosquitos, hormigas y al sol.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Diego G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Diego M.", info: "Enfermedad: Alergia primaveral.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Gabriel S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Lucía A.", info: "Enfermedad: Jaqueca. Tratamiento: Paracetamol/Ibuprofeno. Actuación: 1 dosis de Apiretal (la niña lo lleva y sabe cuándo tomarlo).\nContacto: No especificado.", severity: "medium" },
+                    { name: "Lyanm S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Sara B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Sara G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Sebastián", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Yeray G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                "5º Primaria": [
+                    { name: "Adriana P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "África G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Alba A.", info: "Enfermedad: Migrañas, alergia a picadura de avispa. Actuación: Paracetamol (lleva 1 pastilla), Pomada. Contacto: Francisco (657167007), Sara (660265011).", severity: "high" },
+                    { name: "Alberto S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Alma C.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Dania G.", info: "Contacto: Araceli (614171476).", severity: "medium" },
+                    { name: "Daniel V.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Darío G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Isabel L.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Javier S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Jorge V.", info: "Enfermedad: Intolerancia al kiwi.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Lola P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Lucía H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Oliver G.", info: "Enfermedad: Asma, alergia de contacto (piel). Tratamiento: Loratadina, Ventoduo. Actuación: Si hay tos, parar actividad física, dar Ventolín y agua. Contacto: Jonatan (618940992), Mª Cristina (673724999).", severity: "medium" },
+                    { name: "Sofía N.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Valentín B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Vera H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Xiomara T.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                "6º Primaria": [
+                    { name: "Aimar A.", info: "Enfermedad: Alergia a frutos secos, frutas, pelo de animales, gramíneas, olivo. Tratamiento: Vacuna (1 mes). Síntomas: Picor/erupción (leve), problemas respiratorios (grave). Actuación: Llamar al centro de salud. Contacto: Madre (635344640).", severity: "high" },
+                    { name: "Alba N.", info: "Información: Operada de estenosis supravalvular aórtica. Indicación: Ejercicio físico normal.\nContacto: No especificado.", severity: "high" },
+                    { name: "Alejandro H.", info: "Enfermedad: Celiaquía. Síntomas: Diarrea. Contacto: Lorea (606660470).", severity: "medium" },
+                    { name: "Alma M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Bruno G.", info: "Enfermedad: Alergia al polen.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Daniel C.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Daniel P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Delek H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Elena F.", info: "Enfermedad: Alergia estacional. Tratamiento: Terbasmin, desloratadina.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Irene C.", info: "Enfermedad: Trastorno por déficit de atención. Tratamiento: Medikinet 20 mg.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Marcos C.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Marina A.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Mía R.", info: "Enfermedad: Talasemia. Tratamiento: Vitaminas. Síntomas: Falta de aire (sensación de ahogo). Actuación: Tranquilizar y reposar. Contacto: Félix (651138784), Madre (600019492).", severity: "high" },
+                    { name: "Nadia L.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Paola A.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Paula I.", info: "Enfermedad: Dermatitis atópica grave, Asma, Alergia a proteína de leche, huevo, frutos secos, polen y gramíneas. Tratamiento: Dupilumab 200mg. Síntomas: Urticaria. Actuación: Si hay contacto, administrar Estilsona 3ml y Atarax 5ml. Contacto: Elvira (661211335, 637834692).", severity: "high" },
+                    { name: "Puerto P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Raúl G.", info: "Enfermedad: Asma. Tratamiento: Budesonida 160mg (1 inhalación/12h o a demanda). Síntomas: Falta de aire. Contacto: Carolina (608045291, 654149008).", severity: "medium" },
+                    { name: "Rocío Á.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Sara M.", info: "Enfermedad: TDAH. Tratamiento: Medikinet 10 mg.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Thomas G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Valeria S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Víctor N.", info: "Información: Operado de estenosis supravalvular aórtica. Enfermedad: Alergia polen y gramíneas. Tratamiento: Ebastina 10mg, Aerosol. Indicación: Ejercicio físico normal. Contacto: Luis (609105931), Mª Teresa (625664796).", severity: "high" }
+                ]
+            },
+            "ESO": {
+                "1º ESO": [
+                    { name: "Daniella M.", info: "Enfermedad: Asma, Alergia.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Guillermo M.", info: "Enfermedad: Alergia a gramíneas. Tratamiento habitual: Solo toma antihistamínicos en primavera.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Leire C.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Lucas L.", info: "Enfermedad: Alergia al Polen, Rodilla (menisco). Tratamiento habitual: Antihistamínicos en primavera, Antiinflamatorios.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Lucía R.", info: "Enfermedad: Alergia (Polen y gramíneas), Intolerancia (Gluten, Lácteos, Fructosa). Tratamiento habitual: Antiestamínicos. Actuación: Si es grave, inyectar urbasón. Contacto: Mª de Carmen (659075846), Bartolomé (619880433).", severity: "high" },
+                    { name: "Melany D.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Mirella G.", info: "Enfermedad: Alergia al pescado.\nContacto: No especificado.", severity: "high" },
+                    { name: "Natalia R.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Patrick F.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Raúl J.", info: "Enfermedad: Asma, Alergia a pólenes y gramíneas, hongo de la humedad, arbustos, malezas, pelo de gato, flor de olivo, fresno, laurel. Tratamiento habitual: Ventolín (según necesidad), Aerius (primavera), Budesonida. Síntomas: Dificultad respiratoria. Actuación: Administrar Ventolín según necesidad. Si no cede, inyectar Urbason (grave). Contacto: Mª Elisabeth (665894239).", severity: "high" },
+                    { name: "Ángelo M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                "2º ESO": [
+                    { name: "Adriana D.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Ainhoa P.", info: "Tratamiento habitual: Eutirox de 25.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Ananda L.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Diego P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Ender M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Leyre S.", info: "Enfermedad: Alergia a familia del melocotón y derivados, Asma. Tratamiento habitual: A veces ventolín. Síntomas: Ronchas y enrojecimiento. Actuación: Polaramine. Contacto: Mónica (620034127).", severity: "medium" },
+                    { name: "Luis Miguel P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Maicol H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Mikel F.", info: "Enfermedad: Alergia a fruta (tomate, sandía, melón), Picaduras de mosquito, Polen, roble, arbustos, cenizo, Asma. Tratamiento habitual: Vacunas, antihistamínico, Singulair (1 diaria), Ebastel (1 diaria), Revinty (1 diaria). Síntomas: Tos, picor de garganta, sensación de falta de aire. Actuación: Leve (Tomar salbutamol de rescate), Grave (Medicación de rescate). Contacto: Mercedes (639328403).", severity: "medium" },
+                    { name: "Reina R.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Rodrigo P.", info: "Enfermedad: Afección de tiroides. Tratamiento habitual: Eutirox 50. Actuación: Sin indicaciones. Contacto: Kenia (651090443).", severity: "medium" },
+                    { name: "Román B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Thalia T.", info: "Enfermedad: Problemas de riñón. Tratamiento habitual: Ditropan cada 12 horas.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Víctor B.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Xiomara Y.", info: "Enfermedad: Hipotiroidismo. Tratamiento habitual: 1 pastilla diaria.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Ángel M.", info: "Enfermedad: Alergia a gramíneas y olivo. Contacto: Fernando (662281734), Elizabeth (671985431).", severity: "medium" },
+                    { name: "Ángela M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" }
+                ],
+                "3º ESO": [
+                    { name: "Alejandro C.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Amira E.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Carla A.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Claudia G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "David G.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Enrique P.", info: "Enfermedad: Alergia al polen, humedad, gatos. Migrañas.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Hugo L.", info: "Enfermedad: Alergia a Huevo, leche, fruta.\nContacto: No especificado.", severity: "high" },
+                    { name: "Javier C.", info: "Enfermedad: Alergia a Frutos secos, Alergia primaveral, Asma. Actuación: Ventolín. Contacto: Marisol (651181942), 659830666.", severity: "high" },
+                    { name: "Javier V.", info: "Enfermedad: TDA. Tratamiento habitual: Atenza 54mg.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Jefferson G.", info: "Enfermedad: Alergia a Mosquitos, avispas, hormigas, Ácaros del polvo, polen.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Lucía A.", info: "Enfermedad: Piel atópica.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Lucía D.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Luz R.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Manuel M.", info: "Enfermedad: Trastorno del espectro autista grado I, TDAH combinado, tics motores simples y complejos. Tratamiento habitual: Elvanse 70.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Pablo R.", info: "Enfermedad: Alergia al acebo.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Paula R.", info: "Enfermedad: Bulto en rodilla izquierda. Actuación: En caso de sangrado, presionar y acudir al HOSPITAL.\nContacto: No especificado.", severity: "high" },
+                    { name: "Paula S.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Sofía J.", info: "Enfermedad: Miopía elevada. Tratamiento habitual: Atropina.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Vera H.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Víctor S.", info: "Enfermedad: Diabetes (Hipoglucemias). Tratamiento habitual: Bomba de insulina. Síntomas: Leve (Sudores, temblores), Grave (Desmayo, pérdida de conocimiento). Actuación: Leve (Tomar hidratos de carbono), Grave (Administrar Glucagón).\nContacto: No especificado.", severity: "high" },
+                    { name: "Éric A.", info: "Enfermedad: Genu valgo, Alergia a polen, gramíneas, olivo, lolium perenne y ácaros. Síntomas: Tos, dificultad para respirar. Actuación: Tratamiento para rinoconjuntivitis y asma bronquial, Inhaladores. Contacto: Emiliano (607242511), Susana (617209649).", severity: "medium" }
+                ],
+                "4º ESO": [
+                    { name: "Antonela", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Carmen J.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Celia F.", info: "Enfermedad: Alergia a Polen, gramíneas, olivo, humedad.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Jimena F.", info: "Enfermedad: Asma, Alergia a Piña, kiwi, melón, sandía, cerezas, mango, aguacate, ciruelas, tomate, Pólenes. Síntomas con ejercicio físico: Asfixia y mareo. Actuación: Aerosol (2 puffs) y urgencias. Contacto: Ana (692987095).", severity: "high" },
+                    { name: "Laura C.", info: "Enfermedad: Alergia al medicamento atropina.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Leyre G.", info: "Enfermedad: Alergia estacional.\nContacto: No especificado.", severity: "medium" },
+                    { name: "Lucía A.", info: "Enfermedad: Alergia respiratoria. Tratamiento habitual: Cetirizina 10mg (1 al día), Ebastina 10mg (1 al día), Zaditen 0,25mg (3 al día).\nContacto: No especificado.", severity: "medium" },
+                    { name: "Melody P.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Miguel Ángel M.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Paula S.", info: "Enfermedad: Asma crónica, Alergia primaveral, Alergia a profilinas (tomate, sandía, melón...), pelo de gato, Picaduras de insectos (avispas y abejas). Tratamiento habitual: Cetirizina 1/24h de febrero a junio. Síntomas: Ingesta de profilinas (Picor/inflamación de garganta - leve), Asma en primavera (Silbidos en el pecho - grave). Actuación: Leve (Beber mucha agua), Grave (Ventolín/terbasmín a demanda). Contacto: Angélica (651755696).", severity: "medium" },
+                    { name: "Samuel I.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Sergio C.", info: "Sin patologías conocidas.\nContacto: No especificado.", severity: "low" },
+                    { name: "Ángel C.", info: "Enfermedad: Epilepsia (controlada), Alergia estacional.\nContacto: No especificado.", severity: "high" }
+                ]
+            }
+        };
+
+
+        let db, auth;
+        let studentsCollectionRef;
+        let allStudents = []; // Local cache of all students from Firestore
+        
+        window.app = {
+            isAdminMode: false,
+            reportData: {}, // Los datos del informe ahora se generarán dinámicamente
+            selectedFile: null,
+
+            init() {
+                this.cacheDOMElements();
+                this.registerEventListeners();
+                // Firebase is now initialized after the initial PIN is entered
+            },
+
+            handleInitialPinSubmit(e) {
+                e.preventDefault();
+                const pinInput = document.getElementById('initial-pin-input');
+                if (pinInput.value === '1234') {
+                    document.getElementById('initial-pin-lock').style.display = 'none';
+                    document.getElementById('loading-overlay').classList.remove('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    this.initFirebase(); // Initialize Firebase after unlocking
+                } else {
+                    this.showModal('PIN de acceso incorrecto.', 'error');
+                    pinInput.value = '';
+                    pinInput.focus();
+                }
+            },
+            
+            async initFirebase() {
+                try {
+                    // These global variables are provided by the execution environment.
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+                    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                    
+                    const firebaseApp = initializeApp(firebaseConfig);
+                    db = getFirestore(firebaseApp);
+                    auth = getAuth(firebaseApp);
+
+                    studentsCollectionRef = collection(db, `artifacts/${appId}/public/data/students`);
+                    
+                    await this.authenticate(initialAuthToken);
+                    
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            console.log("User is signed in:", user.uid);
+                            await this.checkAndSeedDatabase(); // Check/seed first
+                            this.listenForStudentUpdates(); // Then listen for updates
+                        } else {
+                            console.log("User is signed out.");
+                        }
+                    });
+
+                } catch (error) {
+                    console.error("Firebase initialization failed:", error);
+                    document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500">Error de conexión. Revisa la consola.</p>';
+                }
+            },
+            
+            async authenticate(token) {
+                try {
+                    if (token) {
+                        await signInWithCustomToken(auth, token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                }
+            },
+            
+            async checkAndSeedDatabase() {
+                try {
+                    const querySnapshot = await getDocs(studentsCollectionRef);
+                    if (querySnapshot.empty) {
+                        console.log("Database is empty. Seeding initial data...");
+                        const batch = writeBatch(db);
+                        for (const stage in schoolData) {
+                            for (const course in schoolData[stage]) {
+                                schoolData[stage][course].forEach(student => {
+                                    const studentDoc = { ...student, stage, course };
+                                    const newDocRef = doc(studentsCollectionRef);
+                                    batch.set(newDocRef, studentDoc);
+                                });
+                            }
+                        }
+                        await batch.commit();
+                        console.log("Seeding complete.");
+                    } else {
+                        console.log("Database already contains data. Skipping seed.");
+                    }
+                } catch (error) {
+                    console.error("Error during initial data check/seed:", error);
+                    document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500">Error al inicializar los datos. Revisa la consola.</p>';
+                }
+            },
+            
+            listenForStudentUpdates() {
+                 onSnapshot(studentsCollectionRef, 
+                    (snapshot) => {
+                        console.log("Received real-time update from Firestore.");
+                        allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        
+                        this.processAndRenderData();
+                        
+                        const loadingOverlay = document.getElementById('loading-overlay');
+                        if (!loadingOverlay.classList.contains('hidden')) {
+                           loadingOverlay.style.opacity = '0';
+                           setTimeout(() => loadingOverlay.classList.add('hidden'), 300);
+                        }
+                    }, 
+                    (error) => {
+                        console.error("Error listening for student updates:", error);
+                        document.getElementById('loading-overlay').innerHTML = '<p class="text-red-500">Error al cargar datos. Revisa la consola.</p>';
+                    }
+                );
+            },
+             
+            processAndRenderData() {
+                // Group flat data into the nested structure needed for rendering
+                const groupedData = allStudents.reduce((acc, student) => {
+                    const { stage, course } = student;
+                    if (!acc[stage]) acc[stage] = {};
+                    if (!acc[stage][course]) acc[stage][course] = [];
+                    acc[stage][course].push(student);
+                    return acc;
+                }, {});
+
+                window.processedData = groupedData; // Update global data object
+                
+                // Generate the report dynamically based on current student data
+                this.reportData = this.generateReportData(allStudents);
+                
+                this.renderCourseButtons();
+                
+                // Initial population of dropdowns
+                this.populateCourseDropdown();
+                
+                // If a course is already selected, re-render its student list
+                const activeCourseBtn = document.querySelector('.course-btn-active');
+                if (activeCourseBtn) {
+                    const { stage, course } = activeCourseBtn.dataset;
+                    this.renderStudentList(stage, course);
+                } else {
+                    // If no course is active, activate the first tab again or clear the list
+                     const activeTab = document.querySelector('.tab-active');
+                     if(activeTab && !['add-student', 'import-data'].includes(activeTab.dataset.target)){
+                         const firstCourse = document.querySelector(`#${activeTab.dataset.target} .course-btn`);
+                         if(firstCourse) firstCourse.click();
+                     } else if (!activeTab) {
+                        const firstTab = this.mainTabs[0];
+                        if(firstTab) firstTab.click();
+                     }
+                }
+            },
+            
+            cacheDOMElements() {
+                this.initialPinForm = document.getElementById('initial-pin-form');
+                this.mainTabs = document.querySelectorAll('[data-tab="main-tabs"]');
+                this.tabContents = document.querySelectorAll('.tab-content');
+                this.studentListContainer = document.getElementById('student-list-container');
+                this.addStudentForm = document.getElementById('add-student-form');
+                this.adminToggleButton = document.getElementById('admin-toggle-btn');
+                this.pdfDownloadButton = document.getElementById('pdf-download-btn');
+                this.studentStageSelect = document.getElementById('student-stage');
+                this.studentCourseSelect = document.getElementById('student-course');
+                this.newCourseContainer = document.getElementById('new-course-container');
+                this.newCourseNameInput = document.getElementById('new-course-name');
+                
+                // Elements for import functionality
+                this.dropZone = document.getElementById('drop-zone');
+                this.fileInput = document.getElementById('file-input');
+                this.browseBtn = document.getElementById('browse-btn');
+                this.importBtn = document.getElementById('import-btn');
+                this.fileNameDisplay = document.getElementById('file-name');
+                this.importResults = document.getElementById('import-results');
+            },
+            registerEventListeners() {
+                if (this.initialPinForm) {
+                    this.initialPinForm.addEventListener('submit', (e) => this.handleInitialPinSubmit(e));
+                }
+                this.mainTabs.forEach(tab => {
+                    tab.addEventListener('click', (e) => this.handleMainTabClick(e));
+                });
+                
+                if(this.addStudentForm) {
+                    this.addStudentForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+                }
+                this.adminToggleButton.addEventListener('click', () => this.toggleAdminMode());
+                this.pdfDownloadButton.addEventListener('click', () => this.generatePDF());
+                
+                if (this.studentStageSelect) {
+                    this.studentStageSelect.addEventListener('change', () => this.populateCourseDropdown());
+                }
+                if (this.studentCourseSelect) {
+                    this.studentCourseSelect.addEventListener('change', () => this.toggleNewCourseInput());
+                }
+
+                // Event listeners for import functionality
+                if (this.browseBtn) {
+                    this.browseBtn.addEventListener('click', () => this.fileInput.click());
+                }
+                if (this.fileInput) {
+                    this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e.target.files));
+                }
+                if (this.dropZone) {
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                        this.dropZone.addEventListener(eventName, this.preventDefaults, false);
+                    });
+                    ['dragenter', 'dragover'].forEach(eventName => {
+                        this.dropZone.addEventListener(eventName, () => this.dropZone.classList.add('drag-over'), false);
+                    });
+                    ['dragleave', 'drop'].forEach(eventName => {
+                        this.dropZone.addEventListener(eventName, () => this.dropZone.classList.remove('drag-over'), false);
+                    });
+                    this.dropZone.addEventListener('drop', (e) => this.handleFileSelect(e.dataTransfer.files), false);
+                }
+                if (this.importBtn) {
+                    this.importBtn.addEventListener('click', () => this.handleImport());
+                }
+            },
+            
+            // --- Import Logic ---
+            preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            },
+            
+            handleFileSelect(files) {
+                if (files.length === 0) return;
+                const file = files[0];
+                if (file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                    this.showModal('Por favor, selecciona un archivo Excel (.xlsx).', 'error');
+                    return;
+                }
+                this.selectedFile = file;
+                this.fileNameDisplay.textContent = `Archivo seleccionado: ${file.name}`;
+                this.importBtn.disabled = false;
+                this.importResults.innerHTML = '<p class="text-gray-500">Archivo listo para ser procesado. Haz clic en el botón de importar.</p>';
+            },
+
+            async handleImport() {
+                if (!this.selectedFile) {
+                    this.showModal('No hay ningún archivo seleccionado.', 'error');
+                    return;
+                }
+
+                this.importBtn.disabled = true;
+                this.importResults.innerHTML = '<p class="text-yellow-400">Procesando archivo... por favor, espera.</p>';
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                        await this.processImportedData(jsonData);
+                    } catch (error) {
+                        console.error("Error processing Excel file:", error);
+                        this.showModal('Hubo un error al leer el archivo Excel.', 'error');
+                        this.importResults.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+                        this.importBtn.disabled = false;
+                    }
+                };
+                reader.onerror = (error) => {
+                     console.error("FileReader error:", error);
+                     this.showModal('Error al leer el archivo.', 'error');
+                     this.importResults.innerHTML = `<p class="text-red-500">Error de lectura del archivo.</p>`;
+                     this.importBtn.disabled = false;
+                }
+                reader.readAsArrayBuffer(this.selectedFile);
+            },
+            
+            _buildInfoString(row) {
+                let infoParts = [];
+                const append = (label, value) => {
+                    // Ensure value is not just whitespace or an empty string
+                    if (value && typeof value === 'string' && value.trim()) {
+                        infoParts.push(`${label}: ${value.trim()}`);
+                    } else if (value && typeof value !== 'string' && value.toString().trim()) {
+                        infoParts.push(`${label}: ${value}`);
+                    }
+                };
+
+                // --- General Health ---
+                append('Enfermedades', row['Enfermedades que Padece']);
+                append('Tratamiento Habitual', row['Tratamiento Habitual']);
+
+                // --- Allergies Section ---
+                let allergyDetails = [];
+                if (row['Alergias Conocidas']?.trim()) allergyDetails.push(row['Alergias Conocidas'].trim());
+                if (row['Tipos de Alergia']?.trim()) allergyDetails.push(`Tipos (${row['Tipos de Alergia'].trim()})`);
+                if (row['Alergia a Pólenes (detalles)']?.trim()) allergyDetails.push(`Pólenes (${row['Alergia a Pólenes (detalles)'].trim()})`);
+                if (row['Alergia a Alimentos (detalles)']?.trim()) allergyDetails.push(`Alimentos (${row['Alergia a Alimentos (detalles)'].trim()})`);
+                if (row['Alergia a Medicamentos (detalles)']?.trim()) allergyDetails.push(`Medicamentos (${row['Alergia a Medicamentos (detalles)'].trim()})`);
+                
+                if(allergyDetails.length > 0) {
+                    append('Alergias', allergyDetails.join('; '));
+                }
+
+                let allergySymptoms = [];
+                if (row['Síntomas de Alergia']?.trim()) allergySymptoms.push(row['Síntomas de Alergia'].trim());
+                if (row['Otros Síntomas de Alergia']?.trim()) allergySymptoms.push(row['Otros Síntomas de Alergia'].trim());
+                if(allergySymptoms.length > 0){
+                    append('Síntomas de Alergia', allergySymptoms.join(', '));
+                }
+
+                if (row['Toma Medicación para Alergia']?.toLowerCase().trim() === 'sí') {
+                    append('Medicación Alergia', row['Medicación para Alergia (detalles)']);
+                }
+
+                // --- Specific Conditions ---
+                if (row['Tratamiento Epilepsia']?.toLowerCase().trim() === 'sí') {
+                    let epilepsyInfo = `Última crisis: ${row['Crisis Epiléptica (último año)'] || 'N/A'}. Medicación: ${row['Medicación para Crisis Epiléptica'] || 'N/A'}`;
+                    append('Epilepsia', epilepsyInfo);
+                }
+                
+                if (row['Administración de Insulina']?.toLowerCase().trim() === 'sí') {
+                    let diabetesInfo = `Episodios Hipoglucemia (3m): ${row['Episodios de Hipoglucemia (3 meses)'] || 'N/A'}. Reconoce síntomas: ${row['Reconoce Síntomas de Hipoglucemia'] || 'N/A'}`;
+                    append('Diabetes (Insulina)', diabetesInfo);
+                }
+
+                // --- Psychological/Learning ---
+                if (row['Tratamiento Psicológico/Psiquiátrico']?.toLowerCase().trim() === 'sí') {
+                    let psychInfo = `${row['Problema Psicológico/Aprendizaje'] || 'No especificado'}. Detalles: ${row['Detalles Tratamiento Psicológico'] || 'N/A'}`;
+                    append('Apoyo Psicológico/Aprendizaje', psychInfo);
+                }
+                
+                // --- Actions and Recommendations ---
+                append('Actuación (Riesgo Leve)', row['Situación de Riesgo Leve']);
+                let actions = [];
+                if (row['Avisar a Urgencias 112']?.toLowerCase().trim() === 'sí') actions.push('Avisar a 112');
+                if (row['Avisar a Tutores']?.toLowerCase().trim() === 'sí') actions.push('Avisar a Tutores');
+                if(actions.length > 0) {
+                    append('Protocolo Urgente', actions.join(' y '));
+                }
+                append('Recomendaciones', row['Recomendaciones']);
+
+
+                // --- Other Info ---
+                if (row['Necesita Cuidados Especiales']?.toLowerCase().trim() === 'sí') {
+                    append('Cuidados Especiales', row['Detalles Cuidados Especiales']);
+                }
+                append('Observaciones', row['Observaciones Adicionales']);
+
+
+                // --- Contact Info ---
+                let contacts = [];
+                if (row['Nombre Tutor/a 1']?.trim()) {
+                    let contact1 = row['Nombre Tutor/a 1'].trim();
+                    if(row['Móvil Tutor/a 1']?.toString().trim()) contact1 += ` (${row['Móvil Tutor/a 1'].toString().trim()})`;
+                    contacts.push(contact1);
+                }
+                if (row['Nombre Tutor/a 2']?.trim()) {
+                    let contact2 = row['Nombre Tutor/a 2'].trim();
+                    if(row['Móvil Tutor/a 2']?.toString().trim()) contact2 += ` (${row['Móvil Tutor/a 2'].toString().trim()})`;
+                    contacts.push(contact2);
+                }
+                if(contacts.length > 0) {
+                    append('Contacto', contacts.join(' / '));
+                }
+
+                return infoParts.length > 0 ? infoParts.join('\n') : 'Sin información detallada.';
+            },
+
+            async processImportedData(data) {
+                const batch = writeBatch(db);
+                let updatesCount = 0;
+                let createsCount = 0;
+                let errorsCount = 0;
+                let logHtml = '<h4><i class="fas fa-list-alt"></i> Registro de importación:</h4><ul class="mt-2 text-sm space-y-1">';
+
+                for (const row of data) {
+                    const name = row['Nombre del Alumno/a']?.toString().trim();
+                    const group = row['Grupo']?.toString().trim();
+                    const status = row['Estado']?.toString().trim();
+
+                    if (!name || !group || !status) {
+                        errorsCount++;
+                        logHtml += `<li class="text-red-400">[ERROR] Fila incompleta (Nombre, Grupo o Estado faltante): ${name || 'Sin nombre'}. Se omitió.</li>`;
+                        continue;
+                    }
+
+                    // 1. Parse Etapa y Curso from Grupo
+                    let stage, course;
+                    try {
+                        const groupParts = group.split('_');
+                        const courseNum = groupParts[0];
+                        const stageIdentifier = groupParts[1].toLowerCase();
+
+                        if (stageIdentifier.includes('infantil')) stage = 'Infantil';
+                        else if (stageIdentifier.includes('primaria')) stage = 'Primaria';
+                        else if (stageIdentifier.includes('eso')) stage = 'ESO';
+                        else throw new Error('Identificador de etapa no válido.');
+
+                        course = `${courseNum}º ${stage}`;
+                    } catch (e) {
+                        errorsCount++;
+                        logHtml += `<li class="text-red-400">[ERROR] Formato de 'Grupo' incorrecto para ${name}: "${group}". Se omitió.</li>`;
+                        continue;
+                    }
+
+                    // 2. Parse Severity from Estado
+                    let severity;
+                    const lowerStatus = status.toLowerCase();
+                    if (lowerStatus === 'rojo') severity = 'high';
+                    else if (lowerStatus === 'amarillo') severity = 'medium';
+                    else if (lowerStatus === 'verde') severity = 'low';
+                    else {
+                        errorsCount++;
+                        logHtml += `<li class="text-red-400">[ERROR] Valor de 'Estado' inválido para ${name}: "${status}". Se omitió.</li>`;
+                        continue;
+                    }
+
+                    // 3. Build Info String
+                    const info = this._buildInfoString(row);
+                    if (!info) {
+                        errorsCount++;
+                        logHtml += `<li class="text-yellow-400">[AVISO] No se encontró información de salud para ${name}. Se omitió.</li>`;
+                        continue;
+                    }
+
+                    // 4. Find student to update, OR create a new one
+                    const studentToUpdate = allStudents.find(s =>
+                        s.name.trim().toLowerCase() === name.toLowerCase() &&
+                        s.stage.trim() === stage &&
+                        s.course.trim() === course
+                    );
+
+                    if (studentToUpdate) {
+                        const studentDocRef = doc(db, studentsCollectionRef.path, studentToUpdate.id);
+                        batch.update(studentDocRef, { info, severity });
+                        updatesCount++;
+                        logHtml += `<li class="text-green-400">[ACTUALIZADO] ${name} (${course}) se actualizará.</li>`;
+                    } else {
+                        // Student not found, so we create a new entry
+                        const newStudent = { name, stage, course, info, severity, createdAt: new Date() };
+                        const newDocRef = doc(studentsCollectionRef);
+                        batch.set(newDocRef, newStudent);
+                        createsCount++;
+                        logHtml += `<li class="text-blue-400">[NUEVO] ${name} (${course}) se creará.</li>`;
+                    }
+                }
+
+                try {
+                    await batch.commit();
+                    logHtml += '</ul><hr class="my-2 border-gray-600">';
+                    logHtml += `<p class="font-bold mt-2 text-white">Importación completada:</p>`;
+                    if (createsCount > 0) logHtml += `<p class="text-blue-400">${createsCount} estudiantes nuevos creados.</p>`;
+                    if (updatesCount > 0) logHtml += `<p class="text-green-400">${updatesCount} estudiantes existentes actualizados.</p>`;
+                    if (errorsCount > 0) logHtml += `<p class="text-red-400">${errorsCount} filas con errores no se procesaron.</p>`;
+                    if (createsCount === 0 && updatesCount === 0 && errorsCount === 0) logHtml += `<p class="text-gray-400">El archivo no contenía datos para procesar.</p>`
+                    
+                    this.importResults.innerHTML = logHtml;
+                    this.showModal('Proceso de importación finalizado. Revisa los resultados.', 'success');
+                } catch (error) {
+                    console.error("Error committing batch update:", error);
+                    this.showModal('Ocurrió un error al guardar los datos en la base de datos.', 'error');
+                    this.importResults.innerHTML = `<p class="text-red-500">Error al guardar: ${error.message}</p>`;
+                } finally {
+                    this.selectedFile = null;
+                    this.fileNameDisplay.textContent = '';
+                    this.importBtn.disabled = true;
+                }
+            },
+            
+            generatePDF() {
+                if (!window.processedData || Object.keys(window.processedData).length === 0) {
+                    this.showModal("No hay datos de estudiantes para generar el informe.", "error");
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({
+                    orientation: 'p',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                const pageContentMargin = 14;
+                const pageContentWidth = doc.internal.pageSize.getWidth() - (pageContentMargin * 2);
+
+                // --- COVER PAGE ---
+                doc.setFillColor(79, 70, 229); // Indigo
+                doc.rect(0, 0, 210, 60, 'F');
+                
+                doc.setFontSize(24);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont(undefined, 'bold');
+                doc.text("Informe Confidencial de Salud Escolar", 105, 35, { align: 'center' });
+                
+                doc.setFontSize(28);
+                doc.setTextColor(55, 65, 81); // Dark Gray
+                doc.setFont(undefined, 'bold');
+                doc.text("Colegio Madre Matilde", 105, 100, { align: 'center' });
+
+                const introText = "Este documento contiene información médica sensible y confidencial sobre los alumnos del centro. Su propósito es facilitar al personal docente y administrativo el conocimiento de las necesidades específicas de salud para garantizar un entorno seguro y una respuesta adecuada ante cualquier incidencia. Se ruega la máxima discreción y un manejo responsable de esta información.";
+                doc.setFontSize(11);
+                doc.setTextColor(107, 114, 128); // Medium Gray
+                doc.setFont(undefined, 'normal');
+                const splitIntro = doc.splitTextToSize(introText, 160);
+                doc.text(splitIntro, 105, 130, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.setTextColor(55, 65, 81); // Dark Gray
+                doc.text(`Fecha de Generación: ${new Date().toLocaleDateString('es-ES')}`, 105, 180, { align: 'center' });
+                
+                doc.setDrawColor(229, 231, 235); // Light gray border
+                doc.rect(10, 10, 190, 277); // Page border
+
+
+                // --- CONTENT PAGES ---
+                const stages = ["Infantil", "Primaria", "ESO"];
+                
+                stages.forEach(stage => {
+                    const coursesData = window.processedData[stage];
+                    if (!coursesData) return;
+
+                    const courses = Object.keys(coursesData).sort();
+                    
+                    courses.forEach(course => {
+                        doc.addPage();
+                        let yPosition = 20;
+
+                        // Course Title
+                        doc.setFontSize(18);
+                        doc.setTextColor(45, 55, 72);
+                        doc.text(`${stage} - ${course}`, pageContentMargin, yPosition);
+                        yPosition += 15;
+
+                        // Report section
+                        const report = this.reportData[stage]?.[course];
+                        if (report) {
+                            doc.setFontSize(12);
+                            doc.setTextColor(29, 78, 216);
+                            doc.text("Análisis y Recomendaciones", pageContentMargin, yPosition);
+                            yPosition += 8;
+
+                            doc.setFontSize(10);
+                            doc.setTextColor(55, 65, 81);
+                            
+                            doc.setFont(undefined, 'bold');
+                            doc.text("Análisis:", pageContentMargin, yPosition);
+                            yPosition += 6;
+                            doc.setFont(undefined, 'normal');
+                            let analysisLines = doc.splitTextToSize(report.analysis, pageContentWidth);
+                            doc.text(analysisLines, pageContentMargin, yPosition);
+                            yPosition += analysisLines.length * 5 + 5;
+
+                            doc.setFont(undefined, 'bold');
+                            doc.text("Recomendaciones:", pageContentMargin, yPosition);
+                            yPosition += 6;
+                            doc.setFont(undefined, 'normal');
+                            const recommendationsText = report.recommendations.map(r => `- ${r}`).join('\n');
+                            let recLines = doc.splitTextToSize(recommendationsText, pageContentWidth);
+                            doc.text(recLines, pageContentMargin, yPosition);
+                            yPosition += recLines.length * 5 + 10;
+                        }
+
+                        // Student Table
+                        const students = [...window.processedData[stage][course]];
+                        const getSeverity = (s) => (s.severity === 'high' ? 1 : s.severity === 'medium' ? 2 : 3);
+                        students.sort((a, b) => getSeverity(a) - getSeverity(b));
+
+                        const tableHead = [['Nombre', 'Información de Salud', 'Riesgo']];
+                        const tableBody = students.map(student => {
+                            let severityText = '';
+                            switch(student.severity) {
+                                case 'high': severityText = 'Alto'; break;
+                                case 'medium': severityText = 'Atención'; break;
+                                case 'low': severityText = 'Bajo'; break;
+                                default: severityText = 'N/A';
+                            }
+                            return [student.name, student.info, severityText];
+                        });
+
+                        doc.autoTable({
+                            head: tableHead,
+                            body: tableBody,
+                            startY: yPosition,
+                            margin: { left: pageContentMargin, right: pageContentMargin },
+                            headStyles: { fillColor: [79, 70, 229] }, // Indigo
+                            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                            columnStyles: {
+                                0: { cellWidth: 35 },
+                                1: { cellWidth: 110 }, 
+                                2: { cellWidth: 20, halign: 'center' },
+                            },
+                            alternateRowStyles: { fillColor: [245, 245, 245] },
+                            didParseCell: function(data) {
+                                if (data.column.index === 2 && data.cell.section === 'body') {
+                                    const text = data.cell.text[0];
+                                    if (text === 'Alto') {
+                                        data.cell.styles.fillColor = '#fecaca'; // Light Red
+                                        data.cell.styles.textColor = '#991b1b'; // Dark Red text
+                                        data.cell.styles.fontStyle = 'bold';
+                                    }
+                                    if (text === 'Atención') {
+                                        data.cell.styles.fillColor = '#fed7aa'; // Light Orange
+                                        data.cell.styles.textColor = '#9a3412'; // Dark Orange text
+                                    }
+                                    if (text === 'Bajo') {
+                                        data.cell.styles.fillColor = '#dcfce7'; // Light Green
+                                        data.cell.styles.textColor = '#166534'; // Dark Green text
+                                    }
+                                }
+                            },
+                            didDrawPage: function(data) {
+                                // Footer
+                                doc.setFontSize(9);
+                                doc.setTextColor(150);
+                                doc.text(
+                                    'Informe de Salud Escolar - Página ' + doc.internal.getNumberOfPages(),
+                                    doc.internal.pageSize.getWidth() / 2,
+                                    doc.internal.pageSize.getHeight() - 10,
+                                    { align: 'center' }
+                                );
+                            }
+                        });
+                    });
+                });
+
+                doc.save('informe-salud-escolar.pdf');
+            },
+            setAdminMode(isActive) {
+                this.isAdminMode = isActive;
+                const btn = this.adminToggleButton;
+                const pdfBtn = this.pdfDownloadButton;
+                const addStudentBtn = document.getElementById('add-student-btn');
+                const importDataBtn = document.getElementById('import-data-btn');
+
+                btn.classList.toggle('bg-green-500', isActive);
+                btn.classList.toggle('text-white', isActive);
+                btn.classList.toggle('bg-yellow-400', !isActive);
+                btn.classList.toggle('text-yellow-900', !isActive);
+                
+                if (isActive) {
+                    btn.innerHTML = `<i class="fas fa-lock-open mr-2"></i>Admin Activo`;
+                    pdfBtn.classList.remove('hidden');
+                    addStudentBtn.classList.remove('hidden');
+                    importDataBtn.classList.remove('hidden');
+                } else {
+                    btn.innerHTML = `<i class="fas fa-user-shield mr-2"></i>Admin`;
+                    pdfBtn.classList.add('hidden');
+                    addStudentBtn.classList.add('hidden');
+                    importDataBtn.classList.add('hidden');
+
+                    const activeTab = document.querySelector('.tab-active');
+                    if (activeTab && (activeTab.dataset.target === 'add-student' || activeTab.dataset.target === 'import-data')) {
+                        const firstMainTab = document.querySelector('[data-tab="main-tabs"]:not(#add-student-btn):not(#import-data-btn)');
+                        if(firstMainTab) firstMainTab.click();
+                    }
+                }
+
+                const activeCourseBtn = document.querySelector('.course-btn-active');
+                if (activeCourseBtn) {
+                    const { stage, course } = activeCourseBtn.dataset;
+                    this.renderStudentList(stage, course);
+                }
+            },
+            toggleAdminMode() {
+                if (this.isAdminMode) {
+                    this.setAdminMode(false); // Deactivate directly
+                } else {
+                    this.showPinModal(); // Show PIN modal to activate
+                }
+            },
+            showPinModal() {
+                const modalId = 'pin-modal';
+                this.closeModal(modalId); // Close if already open
+
+                const modalHtml = `
+                    <div id="${modalId}" class="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4">
+                        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm text-center">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800">Acceso de Administrador</h3>
+                            <p class="text-gray-600 mb-6">Por favor, introduce el PIN para continuar.</p>
+                            <form id="pin-form">
+                                <input type="password" id="pin-input" class="block w-full text-center text-2xl tracking-widest p-2 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" maxlength="4" required>
+                                <div class="flex justify-center gap-4 mt-6">
+                                    <button type="button" onclick="app.closeModal('${modalId}')" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold">Cancelar</button>
+                                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">Entrar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                document.getElementById('pin-input').focus();
+                document.getElementById('pin-form').addEventListener('submit', (e) => this.handlePinSubmit(e));
+            },
+            handlePinSubmit(e) {
+                e.preventDefault();
+                const pinInput = document.getElementById('pin-input');
+                if (pinInput.value === '2025') {
+                    this.setAdminMode(true);
+                    this.closeModal('pin-modal');
+                } else {
+                    this.showModal('PIN incorrecto. Inténtalo de nuevo.', 'error');
+                    pinInput.value = '';
+                    pinInput.focus();
+                }
+            },
+            handleMainTabClick(e) {
+                const targetId = e.currentTarget.dataset.target;
+                const targetButton = e.currentTarget;
+
+                this.mainTabs.forEach(t => t.classList.remove('tab-active'));
+                targetButton.classList.add('tab-active');
+
+                this.tabContents.forEach(content => content.classList.add('hidden'));
+                const targetContent = document.getElementById(targetId);
+
+                if (targetContent) {
+                    targetContent.classList.remove('hidden');
+                }
+
+                if (targetId === 'add-student' || targetId === 'import-data') {
+                    this.studentListContainer.innerHTML = '';
+                    document.querySelectorAll('.course-btn').forEach(btn => btn.classList.remove('course-btn-active'));
+                    return;
+                }
+
+                if (targetContent) {
+                    setTimeout(() => {
+                        const firstCourseButton = targetContent.querySelector('.course-btn');
+                        if (firstCourseButton) {
+                            firstCourseButton.click();
+                        } else {
+                            this.studentListContainer.innerHTML = '<p class="text-gray-500 text-center p-6 bg-white rounded-lg shadow-md">No hay cursos disponibles para esta etapa.</p>';
+                        }
+                    }, 50); 
+                }
+            },
+            async handleFormSubmit(e) {
+                e.preventDefault();
+                const name = document.getElementById('student-name').value;
+                const stage = this.studentStageSelect.value;
+                let course;
+
+                if (this.studentCourseSelect.value === 'new') {
+                    course = this.newCourseNameInput.value.trim();
+                    if (!course) {
+                        this.showModal('Por favor, especifica el nombre del nuevo curso.', 'error');
+                        return;
+                    }
+                } else {
+                    course = this.studentCourseSelect.value;
+                }
+                
+                const info = document.getElementById('student-info').value;
+                const severity = document.querySelector('input[name="severity"]:checked')?.value;
+                
+                if (!severity) {
+                    this.showModal('Por favor, selecciona un nivel de gravedad.', 'error');
+                    return;
+                }
+                
+                const newStudent = { name, stage, course, info, severity, createdAt: new Date() };
+                
+                try {
+                    await addDoc(studentsCollectionRef, newStudent);
+                    this.addStudentForm.reset();
+                    this.populateCourseDropdown();
+                    this.showModal('Estudiante añadido con éxito.', 'success');
+                } catch (error) {
+                    console.error("Error adding student:", error);
+                    this.showModal('Error al añadir el estudiante.', 'error');
+                }
+            },
+            showConfirmationModal(message, onConfirm) {
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4';
+                
+                modal.innerHTML = `
+                    <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-md transform transition-all scale-105 duration-300">
+                        <div class="mb-4">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Confirmación Requerida</h3>
+                        <p class="mb-6 text-gray-600">${message}</p>
+                        <div class="flex justify-center gap-4">
+                            <button id="confirm-cancel" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold">Cancelar</button>
+                            <button id="confirm-ok" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold">Eliminar</button>
+                        </div>
+                    </div>
+                `;
+                
+                modal.querySelector('#confirm-ok').onclick = () => {
+                    onConfirm();
+                    modal.remove();
+                };
+                modal.querySelector('#confirm-cancel').onclick = () => modal.remove();
+
+                document.body.appendChild(modal);
+            },
+            showModal(message, type = 'info') {
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4';
+                let icon = '';
+                let bgColor = '';
+                let textColor = '';
+
+                switch (type) {
+                    case 'success':
+                        icon = '<i class="fas fa-check-circle text-green-500 text-3xl"></i>';
+                        bgColor = 'bg-white';
+                        textColor = 'text-gray-800';
+                        break;
+                    case 'error':
+                        icon = '<i class="fas fa-times-circle text-red-500 text-3xl"></i>';
+                        bgColor = 'bg-white';
+                        textColor = 'text-gray-800';
+                        break;
+                    default:
+                        icon = '<i class="fas fa-info-circle text-blue-500 text-3xl"></i>';
+                        bgColor = 'bg-white';
+                        textColor = 'text-gray-800';
+                }
+
+                modal.innerHTML = `
+                    <div class="${bgColor} p-8 rounded-xl shadow-2xl text-center max-w-sm transform transition-all scale-105 duration-300">
+                        <div class="mb-4">${icon}</div>
+                        <p class="mb-6 text-lg font-medium ${textColor}">${message}</p>
+                        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">Cerrar</button>
+                    </div>
+                `;
+                modal.querySelector('button').onclick = () => modal.remove();
+                document.body.appendChild(modal);
+            },
+            populateCourseDropdown() {
+                if (!this.studentStageSelect) return;
+                
+                // Use existing courses from Firestore data first
+                const selectedStage = this.studentStageSelect.value;
+                const coursesFromData = window.processedData ? Object.keys(window.processedData[selectedStage] || {}).sort() : [];
+                
+                this.studentCourseSelect.innerHTML = ''; // Clear existing options
+
+                if (coursesFromData.length === 0) {
+                    const option = document.createElement('option');
+                    option.textContent = 'No hay cursos todavía';
+                    this.studentCourseSelect.appendChild(option);
+                } else {
+                    coursesFromData.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course;
+                        option.textContent = course;
+                        this.studentCourseSelect.appendChild(option);
+                    });
+                }
+
+
+                const newOption = document.createElement('option');
+                newOption.value = 'new';
+                newOption.textContent = 'Otro (Añadir nuevo curso)...';
+                this.studentCourseSelect.appendChild(newOption);
+
+                this.toggleNewCourseInput();
+            },
+            toggleNewCourseInput() {
+                if (!this.studentCourseSelect || !this.newCourseContainer) return;
+
+                if (this.studentCourseSelect.value === 'new') {
+                    this.newCourseContainer.classList.remove('hidden');
+                    this.newCourseNameInput.required = true;
+                } else {
+                    this.newCourseContainer.classList.add('hidden');
+                    this.newCourseNameInput.required = false;
+                    this.newCourseNameInput.value = '';
+                }
+            },
+            renderCourseButtons() {
+                if (!window.processedData) return;
+                
+                for (const stage of ["Infantil", "Primaria", "ESO"]) {
+                    const containerId = `courses-${stage.toLowerCase()}`;
+                    const container = document.getElementById(containerId);
+                    if (container) {
+                        container.innerHTML = ''; 
+                        const coursesData = window.processedData[stage] || {};
+                        const courses = Object.keys(coursesData).sort();
+                        
+                        courses.forEach(course => {
+                            const studentCount = coursesData[course].length;
+                            const button = document.createElement('button');
+                            button.className = 'course-btn px-5 py-2 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 flex items-center justify-between w-52';
+                            button.dataset.stage = stage;
+                            button.dataset.course = course;
+
+                            button.innerHTML = `
+                                <span>${course}</span>
+                                <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5 py-1 rounded-full">
+                                    ${studentCount}
+                                </span>
+                            `;
+                            
+                            button.addEventListener('click', (e) => this.handleCourseClick(e));
+                            container.appendChild(button);
+                        });
+                    }
+                }
+            },
+            handleCourseClick(e) {
+                // Use currentTarget to ensure we get the button, even if a child span is clicked
+                const button = e.currentTarget;
+                const { stage, course } = button.dataset;
+                this.renderStudentList(stage, course);
+
+                document.querySelectorAll('.course-btn').forEach(btn => btn.classList.remove('course-btn-active'));
+                button.classList.add('course-btn-active');
+            },
+            confirmDeleteStudent(studentId, studentName) {
+                this.showConfirmationModal(
+                    `¿Estás seguro de que quieres eliminar a <strong>${studentName}</strong>? Esta acción no se puede deshacer.`,
+                    () => {
+                        this.deleteStudent(studentId);
+                    }
+                );
+            },
+            async deleteStudent(studentId) {
+                try {
+                    const studentDocRef = doc(db, studentsCollectionRef.path, studentId);
+                    await deleteDoc(studentDocRef);
+                    this.showModal('Estudiante eliminado correctamente.', 'success');
+                    // UI will update automatically via onSnapshot
+                } catch(error) {
+                    console.error("Error deleting student: ", error);
+                    this.showModal('No se pudo eliminar al estudiante.', 'error');
+                }
+            },
+            renderStudentList(stage, course) {
+                const students = window.processedData?.[stage]?.[course];
+                const report = this.reportData[stage]?.[course];
+
+                if (!students) {
+                    this.studentListContainer.innerHTML = '<p class="text-gray-500 text-center p-6">No se encontraron estudiantes para este curso.</p>';
+                    return;
+                }
+
+                let reportHtml = '';
+                if (report) {
+                    reportHtml = `
+                        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-6 rounded-lg mb-8 shadow-md">
+                            <h4 class="text-xl font-bold mb-3 flex items-center"><i class="fas fa-chart-bar mr-3"></i>Resumen y Recomendaciones de la Clase</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                <div>
+                                    <h5 class="font-semibold mb-2 text-gray-700">Análisis General:</h5>
+                                    <p class="text-sm text-gray-600">${report.analysis}</p>
+                                    <h5 class="font-semibold mt-4 mb-2 text-gray-700">Resumen de Riesgos:</h5>
+                                    <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                                        <span class="flex items-center font-medium text-red-700"><div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>Riesgo Alto: ${report.summary.high}</span>
+                                        <span class="flex items-center font-medium text-yellow-700"><div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>Atención: ${report.summary.medium}</span>
+                                        <span class="flex items-center font-medium text-green-700"><div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>Sin Riesgo: ${report.summary.low}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h5 class="font-semibold mb-2 text-gray-700">Recomendaciones Clave:</h5>
+                                    <ul class="list-disc list-inside space-y-1 text-sm text-gray-600">
+                                        ${report.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                const getSeverity = (student) => {
+                    if (student.severity === 'high') return 1;
+                    if (student.severity === 'medium') return 2;
+                    if (student.severity === 'low') return 3;
+                    return 4; // Sin categoría específica
+                };
+
+                students.sort((a, b) => getSeverity(a) - getSeverity(b));
+                
+                let html = `<h3 class="text-2xl font-bold text-gray-800 mb-5"><i class="fas fa-users mr-3 text-indigo-600"></i>Alumnos de ${course}</h3>`;
+                html += reportHtml; // Add the report section here
+                html += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">';
+                students.forEach(student => {
+                    const studentSeverity = student.severity;
+                    let cardBgColor = 'bg-white';
+                    let borderColor = 'border-gray-300';
+                    let alertsHtml = '';
+
+                    switch(studentSeverity) {
+                        case 'low':
+                            borderColor = 'border-green-500';
+                            cardBgColor = 'bg-green-50';
+                            alertsHtml += `<span class="alert-mini-card alert-mini-card-green"><i class="fas fa-check-circle"></i>Sin Riesgo</span>`;
+                            break;
+                        case 'high':
+                             borderColor = 'border-red-500';
+                            cardBgColor = 'bg-red-50';
+                            alertsHtml += `<span class="alert-mini-card alert-mini-card-red"><i class="fas fa-exclamation-triangle"></i>Riesgo Alto</span>`;
+                            break;
+                        case 'medium':
+                             borderColor = 'border-yellow-500';
+                            cardBgColor = 'bg-yellow-50';
+                            alertsHtml += `<span class="alert-mini-card alert-mini-card-yellow"><i class="fas fa-notes-medical"></i>Atención</span>`;
+                             break;
+                        default:
+                            borderColor = 'border-gray-400';
+                            cardBgColor = 'bg-gray-50';
+                            alertsHtml += `<span class="alert-mini-card alert-mini-card-blue"><i class="fas fa-info-circle"></i>Info</span>`;
+                    }
+                   
+                    const studentJson = JSON.stringify(student).replace(/'/g, "&apos;");
+
+                    let adminButtonsHtml = '';
+                    if (this.isAdminMode) {
+                        adminButtonsHtml = `
+                            <div class="mt-4 pt-4 border-t border-gray-200/60 flex items-center justify-end gap-2">
+                                <button onclick='app.showEditStudentModal(${studentJson})' class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold flex items-center justify-center text-sm">
+                                    <i class="fas fa-pencil-alt mr-2"></i>Editar
+                                </button>
+                                <button onclick='app.confirmDeleteStudent("${student.id}", "${student.name}")' class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold flex items-center justify-center text-sm">
+                                    <i class="fas fa-trash-alt mr-2"></i>Borrar
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    html += `
+                        <div class="student-card p-5 ${borderColor} ${cardBgColor}">
+                            <div class="cursor-pointer" onclick='app.showStudentDetailModal(${studentJson})'>
+                                <div class="flex items-center mb-3">
+                                    <div class="avatar flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl mr-4 shadow-sm">
+                                        ${student.name.split(' ').map(n => n[0]).join('')}
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-xl text-gray-900">${student.name}</h4>
+                                        <p class="text-gray-500 text-sm">${student.course}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    ${alertsHtml}
+                                </div>
+                                <p class="info-snippet text-sm leading-relaxed whitespace-pre-line">${student.info}</p>
+                            </div>
+                            ${adminButtonsHtml}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                this.studentListContainer.innerHTML = html;
+            },
+            showEditStudentModal(student) {
+                const modalId = 'edit-student-modal';
+                this.closeModal(modalId); // Close if already open just in case
+
+                const modalHtml = `
+                    <div id="${modalId}" class="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4">
+                        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl transform transition-all scale-100 duration-300">
+                            <h3 class="text-2xl font-bold mb-6 text-gray-800">Editando a <span class="text-blue-600">${student.name}</span></h3>
+                            <form id="edit-student-form" class="space-y-4">
+                                <input type="hidden" id="edit-student-id" value="${student.id}">
+                                
+                                <div>
+                                    <label for="edit-student-name" class="block text-sm font-semibold text-gray-700 mb-1">Nombre del Estudiante</label>
+                                    <input type="text" id="edit-student-name" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${student.name}" required>
+                                </div>
+                                <div>
+                                    <label for="edit-student-info" class="block text-sm font-semibold text-gray-700 mb-1">Información Médica Completa</label>
+                                    <textarea id="edit-student-info" rows="8" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>${student.info}</textarea>
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nivel de Gravedad</label>
+                                    <div class="mt-2 grid grid-cols-3 gap-3">
+                                        <div>
+                                            <label for="edit-severity-high" class="flex cursor-pointer items-center justify-center rounded-md border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800 hover:bg-red-100 has-[:checked]:border-red-600 has-[:checked]:bg-red-200 has-[:checked]:ring-2 has-[:checked]:ring-red-500">
+                                                <input type="radio" name="edit-severity" value="high" id="edit-severity-high" class="sr-only" ${student.severity === 'high' ? 'checked' : ''}>
+                                                <span>Riesgo Alto</span>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <label for="edit-severity-medium" class="flex cursor-pointer items-center justify-center rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm font-medium text-yellow-800 hover:bg-yellow-100 has-[:checked]:border-yellow-600 has-[:checked]:bg-yellow-200 has-[:checked]:ring-2 has-[:checked]:ring-yellow-500">
+                                                <input type="radio" name="edit-severity" value="medium" id="edit-severity-medium" class="sr-only" ${student.severity === 'medium' ? 'checked' : ''}>
+                                                <span>Atención</span>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <label for="edit-severity-low" class="flex cursor-pointer items-center justify-center rounded-md border border-green-300 bg-green-50 p-3 text-sm font-medium text-green-800 hover:bg-green-100 has-[:checked]:border-green-600 has-[:checked]:bg-green-200 has-[:checked]:ring-2 has-[:checked]:ring-green-500">
+                                                <input type="radio" name="edit-severity" value="low" id="edit-severity-low" class="sr-only" ${student.severity === 'low' ? 'checked' : ''}>
+                                                <span>Sin Riesgo</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-end gap-4 pt-4">
+                                    <button type="button" onclick="app.closeModal('${modalId}')" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold">Cancelar</button>
+                                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">Guardar Cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                
+                document.getElementById('edit-student-form').addEventListener('submit', (e) => this.handleEditSubmit(e));
+            },
+            async handleEditSubmit(e) {
+                e.preventDefault();
+                
+                const studentId = document.getElementById('edit-student-id').value;
+                const newName = document.getElementById('edit-student-name').value;
+                const newInfo = document.getElementById('edit-student-info').value;
+                const newSeverity = document.querySelector('input[name="edit-severity"]:checked')?.value;
+
+                if (!newSeverity) {
+                    this.showModal('Por favor, selecciona un nivel de gravedad.', 'error');
+                    return;
+                }
+                
+                const updatedData = {
+                    name: newName,
+                    info: newInfo,
+                    severity: newSeverity
+                };
+                
+                try {
+                    const studentDocRef = doc(db, studentsCollectionRef.path, studentId);
+                    await updateDoc(studentDocRef, updatedData);
+                    this.closeModal('edit-student-modal');
+                    this.showModal('Estudiante actualizado con éxito.', 'success');
+                } catch (error) {
+                    console.error("Error updating student:", error);
+                    this.showModal('Error al actualizar el estudiante.', 'error');
+                }
+            },
+            showStudentDetailModal(student) {
+                
+                const modalHtml = `
+                    <div id="detail-modal-backdrop" class="fixed inset-0 flex items-center justify-center z-50 p-4">
+                        <div class="modal-content-container w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8 relative">
+                            <button class="absolute top-5 right-5 text-gray-500 hover:text-gray-900 text-3xl transition" onclick="app.closeModal('detail-modal-backdrop')"><i class="fas fa-times-circle"></i></button>
+                            
+                            <h3 class="text-4xl font-extrabold mb-2">${student.name}</h3>
+                            <p class="text-xl text-gray-600 mb-6">${student.course} (${student.stage})</p>
+
+                            <div class="space-y-8">
+                                
+                                <div class="info-section p-6">
+                                    <h4 class="text-2xl font-bold mb-4 flex items-center text-gray-800">
+                                        <i class="fas fa-file-alt text-purple-600 mr-3"></i>Información Médica Completa
+                                    </h4>
+                                    <p class="text-gray-700 whitespace-pre-line leading-relaxed text-base">${student.info}</p>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            },
+            
+            closeModal(id) {
+                document.getElementById(id)?.remove();
+            },
+
+             // NUEVA FUNCIÓN: Genera dinámicamente el análisis y las recomendaciones
+            generateReportData(students) {
+                if (!students || students.length === 0) {
+                    return {};
+                }
+
+                const groupedData = students.reduce((acc, student) => {
+                    const { stage, course } = student;
+                    if (!acc[stage]) acc[stage] = {};
+                    if (!acc[stage][course]) acc[stage][course] = [];
+                    acc[stage][course].push(student);
+                    return acc;
+                }, {});
+
+                const newReportData = {};
+
+                for (const stage in groupedData) {
+                    newReportData[stage] = {};
+                    for (const course in groupedData[stage]) {
+                        const courseStudents = groupedData[stage][course];
+                        
+                        const summary = { high: 0, medium: 0, low: 0 };
+                        const highRiskStudents = [];
+                        const mediumRiskStudents = [];
+
+                        courseStudents.forEach(student => {
+                            if (student.severity === 'high') {
+                                summary.high++;
+                                highRiskStudents.push(student);
+                            } else if (student.severity === 'medium') {
+                                summary.medium++;
+                                mediumRiskStudents.push(student);
+                            } else {
+                                summary.low++;
+                            }
+                        });
+
+                        let analysis = '';
+                        const recommendations = new Set();
+
+                        if (summary.high > 0) {
+                            const highRiskConditions = highRiskStudents.map(s => this.summarizeCondition(s.info)).join(', ');
+                            analysis = `Esta es una clase de muy alto riesgo con ${summary.high} estudiante(s) con condiciones severas (${highRiskConditions}) que requieren atención constante.`;
+                        } else if (summary.medium > 0) {
+                            analysis = `Riesgo moderado con ${summary.medium} estudiante(s) que requieren atención para condiciones como asma, alergias estacionales u otras patologías manejables.`;
+                        } else {
+                            analysis = 'Clase de bajo riesgo. No se han reportado patologías significativas que requieran atención especial.';
+                        }
+
+                        if (summary.high === 0 && summary.medium === 0) {
+                            recommendations.add("Vigilancia General: Mantener la observación estándar para detectar cualquier síntoma o malestar no diagnosticado.");
+                            recommendations.add("Actualización de Datos: Animar a los padres a comunicar cualquier cambio en la salud de sus hijos a lo largo del curso.");
+                        } else {
+                            recommendations.add("Revisión de Protocolos: Asegurarse de que todo el personal conozca los planes de acción individuales de los estudiantes con riesgo.");
+                        }
+
+
+                        highRiskStudents.forEach(student => {
+                            const condition = this.summarizeCondition(student.info).toLowerCase();
+                            if (condition.includes('diabetes')) {
+                                recommendations.add(`Protocolo de Diabetes (Crítico): El personal debe conocer el protocolo de actuación ante una hipoglucemia para ${student.name}.`);
+                            } else if (condition.includes('alergia') && (condition.includes('frutos secos') || condition.includes('pescado') || condition.includes('huevo') || condition.includes('leche') || condition.includes('anafilaxia') || condition.includes('pipas'))) {
+                                recommendations.add(`Medicación de Emergencia (Crítico): La medicación (adrenalina/urbason) para ${student.name} debe ser accesible y el personal debe saber administrarla.`);
+                                recommendations.add(`Zona Libre de Alérgenos: Implementar una política estricta de "no compartir alimentos" para proteger a ${student.name}.`);
+                            } else if (condition.includes('epilepsia')) {
+                                recommendations.add(`Protocolo de Epilepsia (Crítico): El personal debe estar formado sobre cómo actuar ante una crisis epiléptica de ${student.name}.`);
+                            } else if (condition.includes('cardíaco') || condition.includes('aórtica') || condition.includes('corazón')) {
+                                recommendations.add(`Vigilancia Cardíaca: Supervisar de cerca a ${student.name} durante el esfuerzo físico y conocer los signos de fatiga o malestar.`);
+                            } else if (condition.includes('sangrado') || condition.includes('hospital')) {
+                                recommendations.add(`Protocolo de Sangrado (Urgente): Conocer la indicación específica para ${student.name} y actuar rápidamente.`);
+                            } else {
+                                recommendations.add(`Atención Máxima para ${student.name}: Revisar en detalle la ficha de ${student.name} para conocer su condición específica y el plan de actuación.`);
+                            }
+                        });
+                        
+                        mediumRiskStudents.forEach(student => {
+                            const condition = this.summarizeCondition(student.info).toLowerCase();
+                            if (condition.includes('asma')) {
+                                recommendations.add(`Manejo del Asma: Conocer los desencadenantes y el uso correcto de inhaladores para ${student.name}, especialmente durante la actividad física.`);
+                            } else if (condition.includes('alergia')) {
+                                recommendations.add(`Control de Alergias: Estar atentos a los síntomas de alergia de ${student.name} y tener a mano antihistamínicos si están prescritos.`);
+                            } else if (condition.includes('tdah') || condition.includes('autista') || condition.includes('tda')) {
+                                recommendations.add(`Apoyo a la Neurodiversidad: Ofrecer apoyo y estrategias adecuadas para ${student.name}.`);
+                            } else if (condition.includes('piel atópica') || condition.includes('dermatitis')) {
+                                recommendations.add(`Cuidado de la Piel: Estar atentos a los brotes de ${student.name} y evitar los desencadenantes conocidos.`);
+                            }
+                        });
+
+                        newReportData[stage][course] = {
+                            summary,
+                            analysis,
+                            recommendations: Array.from(recommendations)
+                        };
+                    }
+                }
+
+                return newReportData;
+            },
+
+            // NUEVA FUNCIÓN: Extrae un resumen de la condición de salud.
+            summarizeCondition(info) {
+                const lines = info.split('\n');
+                const diseaseLine = lines.find(line => line.toLowerCase().startsWith('enfermedad:'));
+                if (diseaseLine) {
+                    return diseaseLine.substring('enfermedad:'.length).trim().split(/,|\./)[0];
+                }
+                 const infoLine = lines.find(line => line.toLowerCase().startsWith('información:'));
+                 if(infoLine){
+                     return infoLine.substring('información:'.length).trim().split(/,|\./)[0];
+                 }
+                return info.split(/,|\./)[0]; 
+            },
+
+        };
+
+        app.init();
+        // Forzar el foco en el campo del PIN al cargar la página para mayor fiabilidad
+        document.getElementById('initial-pin-input')?.focus();
+    </script>
+<footer style="text-align:center; font-size:0.9rem; color:#777; padding:12px 0">
+  © 2025 Orestes González Villanueva — Desarrollado con Gemini ·
+  <a href="mailto:ogonzalezv01@educarex.es?subject=Contacto%20App%20Gemini&body=Hola%20Orestes,"
+     style="color:inherit; text-decoration:underline;">ogonzalezv01@educarex.es</a>
+</footer>
+</body>
+</html>
