@@ -1,8 +1,9 @@
 {
   "name": "Salud Escolar",
-  "short_name": "Salud",
+  "short_name": "SaludEscolar",
   "description": "Aplicación de Gestión de Salud Escolar",
-  "start_url": "/",
+  "start_url": "/salud-escolar/",
+  "scope": "/salud-escolar/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6366f1",
