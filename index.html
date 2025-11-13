@@ -1891,7 +1891,21 @@
   <a href="mailto:ogonzalezv01@educarex.es?subject=Contacto%20App%20Gemini&body=Hola%20Orestes,"
      style="color:inherit; text-decoration:underline;">ogonzalezv01@educarex.es</a>
 </footer>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/salud-escolar/service-worker.js')
+          .then(registration => {
+            console.log('Service Worker registered:', registration);
+          })
+          .catch(error => {
+            console.log('Service Worker registration failed:', error);
+          });
+      }
+    </script>
 </body>
 
 </html>
+
 
