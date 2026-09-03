@@ -52,14 +52,24 @@
             </div>
 
             <div id="google-section" class="hidden animate-fade-in">
-                <p class="text-green-600 font-medium mb-6 flex items-center justify-center">
+                <p class="text-green-600 font-medium mb-4 flex items-center justify-center">
                     <i class="fas fa-check-circle mr-2"></i> PIN Correcto
                 </p>
+                <button id="direct-access-btn"
+                    class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 mb-4 cursor-pointer">
+                    <i class="fas fa-unlock-alt"></i>
+                    Acceder con PIN de Centro
+                </button>
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-4 text-slate-400 text-xs font-semibold uppercase">o si lo prefieres</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
                 <button id="google-login-btn"
-                    class="w-full border-2 border-slate-200 py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/pjax_loader.gif" class="w-6 h-6 hidden"
+                    class="w-full border-2 border-slate-200 py-3 rounded-xl font-semibold text-slate-700 flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors mt-2">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/pjax_loader.gif" class="w-5 h-5 hidden"
                         id="google-loader">
-                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-6 h-6">
+                    <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" class="w-5 h-5">
                     Identificarse con Google
                 </button>
             </div>
@@ -275,8 +285,8 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="firebase-config.js?v=2.4"></script>
-    <script type="module" src="app.js?v=2.4"></script>
+    <script src="firebase-config.js?v=2.5"></script>
+    <script type="module" src="app.js?v=2.5"></script>
 </body>
 
 </html>

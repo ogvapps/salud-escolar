@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, doc, getDocs, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { schoolData } from "./data.js";
 
@@ -23,6 +23,17 @@ export async function initFirebase() {
     } catch (error) {
         console.error("Firebase initialization failed:", error);
         throw error;
+    }
+}
+
+export async function loginAnonymously() {
+    try {
+        if (!auth) return null;
+        const result = await signInAnonymously(auth);
+        return result.user;
+    } catch (error) {
+        console.warn("Anonymous sign-in not available:", error);
+        return null;
     }
 }
 

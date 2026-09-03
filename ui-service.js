@@ -63,11 +63,19 @@ export class UIManager {
         this.importBtn = document.getElementById('import-btn');
         this.fileNameDisplay = document.getElementById('file-name');
         this.importResults = document.getElementById('import-results');
+        this.directAccessBtn = document.getElementById('direct-access-btn');
     }
 
     registerEventListeners() {
         if (this.initialPinForm) {
             this.initialPinForm.addEventListener('submit', (e) => this.handleInitialPinSubmit(e));
+        }
+        if (this.directAccessBtn) {
+            this.directAccessBtn.addEventListener('click', () => {
+                if (typeof window.unlockWithPin === 'function') {
+                    window.unlockWithPin();
+                }
+            });
         }
         if (this.googleLoginBtn) {
             this.googleLoginBtn.addEventListener('click', () => this.handleGoogleLogin());
@@ -133,7 +141,11 @@ export class UIManager {
             await loginWithGoogle();
         } catch (error) {
             document.getElementById('loading-overlay').classList.add('hidden');
-            showModal('Error: ' + error.message, 'error');
+            console.error("Google login failed:", error);
+            showModal(
+                'No se pudo completar el acceso con Google (' + (error.code || error.message) + '). Usa el botón "Acceder con PIN de Centro" para entrar directamente sin restricciones.',
+                'info'
+            );
         }
     }
 
