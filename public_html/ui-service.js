@@ -362,6 +362,115 @@ export class UIManager {
         }
     }
 
+    async promptAddStudentToCourse(stage, course) {
+        const { value: formValues } = await Swal.fire({
+            title: `➕ Nuevo Alumno en ${course}`,
+            html: `
+                <div class="text-left space-y-4 text-sm text-slate-700">
+                    <div class="bg-indigo-50 border border-indigo-100 p-3 rounded-xl flex items-center justify-between text-xs font-bold text-indigo-900">
+                        <span><i class="fas fa-graduation-cap mr-1.5 text-indigo-600"></i>Etapa: ${stage}</span>
+                        <span class="bg-indigo-600 text-white px-2.5 py-0.5 rounded-full">${course}</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nombre Completo del Alumno</label>
+                        <input id="quick-student-name" type="text" placeholder="Ej: Lucía Gómez Sánchez" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:outline-none font-medium">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nivel de Alerta Médica</label>
+                        <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+                            <label class="border-2 border-red-200 rounded-xl p-2.5 cursor-pointer has-[:checked]:bg-red-500 has-[:checked]:text-white has-[:checked]:border-red-500 transition-all text-red-600">
+                                <input type="radio" name="quick-severity" value="high" class="hidden">
+                                <span>ALTO</span>
+                            </label>
+                            <label class="border-2 border-amber-200 rounded-xl p-2.5 cursor-pointer has-[:checked]:bg-amber-500 has-[:checked]:text-white has-[:checked]:border-amber-500 transition-all text-amber-600">
+                                <input type="radio" name="quick-severity" value="medium" class="hidden">
+                                <span>MEDIO</span>
+                            </label>
+                            <label class="border-2 border-emerald-200 rounded-xl p-2.5 cursor-pointer has-[:checked]:bg-emerald-500 has-[:checked]:text-white has-[:checked]:border-emerald-500 transition-all text-emerald-600">
+                                <input type="radio" name="quick-severity" value="low" checked class="hidden">
+                                <span>BAJO</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Protocolos de Salud / Alergias / Medicación</label>
+                        <textarea id="quick-student-info" rows="4" placeholder="Describa alergias, medicación o 'Sin patologías conocidas'..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:outline-none text-xs leading-relaxed"></textarea>
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-check mr-2"></i>Guardar Alumno',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'swal2-popup',
+                confirmButton: 'swal2-confirm bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg',
+                cancelButton: 'swal2-cancel bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl'
+            },
+            buttonsStyling: false,
+            didOpen: () => {
+                document.getElementById('quick-student-name')?.focus();
+            },
+            preConfirm: () => {
+                const name = document.getElementById('quick-student-name')?.value.trim();
+                const severity = document.querySelector('input[name="quick-severity"]:checked')?.value || 'low';
+                const info = document.getElementById('quick-student-info')?.value.trim() || 'Sin patologías conocidas.\nContacto: No especificado.';
+
+                if (!name) {
+                    Swal.showValidationMessage('Por favor introduce el nombre del alumno');
+                    return false;
+                }
+
+                return { name, severity, info };
+            }
+        });
+
+        if (!formValues) return;
+
+        const newStudent = {
+            name: formValues.name,
+            stage,
+            course,
+            severity: formValues.severity,
+            info: formValues.info,
+            createdAt: serverTimestamp()
+        };
+
+        try {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            const docRef = await addDoc(this.studentsCollectionRef, newStudent);
+            await logAction('CREATE_STUDENT', { name: newStudent.name, course: newStudent.course });
+
+            // Actualizar memoria local al instante
+            this.allStudents.push({ id: docRef.id, ...newStudent });
+            this.processAndRenderData();
+
+            // Mantener visualización activa en este curso
+            this.renderStudentList(stage, course);
+            document.querySelectorAll('.course-btn').forEach(btn => {
+                btn.classList.toggle('course-btn-active', btn.dataset.stage === stage && btn.dataset.course === course);
+            });
+
+            document.getElementById('loading-overlay').classList.add('hidden');
+
+            Swal.fire({
+                icon: 'success',
+                title: '¡Alumno Guardado!',
+                html: `<strong>${formValues.name}</strong> ha sido añadido/a a <strong>${course}</strong>.`,
+                timer: 2000,
+                showConfirmButton: false,
+                customClass: { popup: 'swal2-popup' }
+            });
+        } catch (error) {
+            document.getElementById('loading-overlay').classList.add('hidden');
+            console.error("Error al guardar alumno rápido:", error);
+            showModal('Error al guardar el alumno: ' + error.message, 'error');
+        }
+    }
+
     async promptAddCourse(defaultStage = 'Infantil') {
         const stage = defaultStage || 'Infantil';
         const officialCourses = DEFAULT_COURSES[stage] || [];
@@ -689,7 +798,7 @@ export class UIManager {
             `;
             const addBtn = this.studentListContainer.querySelector('.add-student-to-course-btn');
             if (addBtn) {
-                addBtn.addEventListener('click', () => this.goToAddStudent(stage, course));
+                addBtn.addEventListener('click', () => this.promptAddStudentToCourse(stage, course));
             }
             const remBtn = this.studentListContainer.querySelector('.remove-empty-course-btn');
             if (remBtn) {
@@ -727,13 +836,32 @@ export class UIManager {
         const getWeight = (s) => (s.severity === 'high' ? 1 : s.severity === 'medium' ? 2 : 3);
         students.sort((a, b) => getWeight(a) - getWeight(b));
 
-        this.studentListContainer.innerHTML = `<h3 class="text-2xl font-bold text-gray-800 mb-5">${course}</h3>`;
+        this.studentListContainer.innerHTML = `
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-3xl font-black text-gray-800">${course}</h3>
+                    <span class="bg-indigo-100 text-indigo-800 text-xs font-black px-3 py-1 rounded-full">
+                        ${students.length} alumno${students.length === 1 ? '' : 's'}
+                    </span>
+                </div>
+                ${this.isAdminMode ? `
+                    <button class="add-student-to-course-btn bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-200 transition-all flex items-center gap-2 cursor-pointer">
+                        <i class="fas fa-user-plus text-sm"></i>Añadir Alumno a ${course}
+                    </button>
+                ` : ''}
+            </div>
+        `;
         this.studentListContainer.innerHTML += reportHtml;
         const grid = document.createElement('div');
         grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
 
         students.forEach(student => grid.appendChild(this.createStudentCard(student)));
         this.studentListContainer.appendChild(grid);
+
+        const addStudentBtn = this.studentListContainer.querySelector('.add-student-to-course-btn');
+        if (addStudentBtn) {
+            addStudentBtn.addEventListener('click', () => this.promptAddStudentToCourse(stage, course));
+        }
     }
 
     createStudentCard(student) {
@@ -803,48 +931,191 @@ export class UIManager {
         const modalId = 'edit-student-modal';
         closeModal(modalId);
 
+        const currentStage = student.stage || 'Infantil';
+        const currentCourse = student.course || '';
+
+        const renderCourseOptions = (st, selectedCourse) => {
+            const list = this.getAllCourses(st);
+            return list.map(c => `<option value="${c}" ${c === selectedCourse ? 'selected' : ''}>${c}</option>`).join('') +
+                   `<option value="new">➕ Otro... (Nuevo curso)</option>`;
+        };
+
         const modalHtml = `
-            <div id="${modalId}" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
-                <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
-                    <h3 class="text-2xl font-bold mb-6">Editando: ${student.name}</h3>
-                    <form id="edit-student-form" class="space-y-4">
-                        <input type="hidden" id="edit-student-id" value="${student.id}">
-                        <input type="text" id="edit-student-name" class="block w-full px-4 py-2 border rounded-lg" value="${student.name}" required>
-                        <textarea id="edit-student-info" rows="6" class="block w-full px-4 py-2 border rounded-lg" required>${student.info}</textarea>
-                        <div class="flex gap-4">
-                            <label><input type="radio" name="edit-severity" value="high" ${student.severity === 'high' ? 'checked' : ''}> Alto</label>
-                            <label><input type="radio" name="edit-severity" value="medium" ${student.severity === 'medium' ? 'checked' : ''}> Medio</label>
-                            <label><input type="radio" name="edit-severity" value="low" ${student.severity === 'low' ? 'checked' : ''}> Bajo</label>
+            <div id="${modalId}" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+                <div class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+                        <div>
+                            <span class="text-xs font-black text-indigo-600 uppercase tracking-widest">Edición de Ficha</span>
+                            <h3 class="text-2xl font-black text-slate-800">${student.name}</h3>
                         </div>
-                        <div class="flex justify-end gap-4 pt-4">
-                            <button type="button" class="cancel-edit bg-gray-200 px-6 py-2 rounded-lg">Cancelar</button>
-                            <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg">Guardar</button>
+                        <button type="button" class="cancel-edit text-slate-400 hover:text-slate-600 text-2xl cursor-pointer">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
+
+                    <form id="edit-student-form" class="space-y-6">
+                        <input type="hidden" id="edit-student-id" value="${student.id}">
+
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Nombre Completo</label>
+                            <input type="text" id="edit-student-name" class="w-full px-5 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none font-semibold text-slate-800 transition-colors" value="${student.name}" required>
+                        </div>
+
+                        <!-- Reasignación de Etapa y Curso -->
+                        <div class="bg-indigo-50/50 border border-indigo-100 p-5 rounded-2xl space-y-4">
+                            <h4 class="text-xs font-black text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fas fa-exchange-alt text-indigo-600"></i>Reasignar Curso y Etapa
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Etapa Educativa</label>
+                                    <select id="edit-student-stage" class="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:border-indigo-500 focus:outline-none text-xs font-bold text-slate-700">
+                                        <option value="Infantil" ${currentStage === 'Infantil' ? 'selected' : ''}>Infantil</option>
+                                        <option value="Primaria" ${currentStage === 'Primaria' ? 'selected' : ''}>Primaria</option>
+                                        <option value="ESO" ${currentStage === 'ESO' ? 'selected' : ''}>ESO</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Curso / Grupo</label>
+                                    <select id="edit-student-course" class="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:border-indigo-500 focus:outline-none text-xs font-bold text-slate-700">
+                                        ${renderCourseOptions(currentStage, currentCourse)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="edit-new-course-container" class="hidden">
+                                <label class="block text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-1">Nombre del nuevo curso</label>
+                                <input type="text" id="edit-new-course-name" class="w-full px-4 py-2.5 rounded-xl border border-indigo-300 bg-white focus:outline-none text-xs font-semibold" placeholder="Ej: 1º Infantil, 1º A...">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Nivel de Alerta Médica</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="border-2 border-red-200 rounded-2xl p-3 text-center cursor-pointer transition-all has-[:checked]:bg-red-500 has-[:checked]:text-white has-[:checked]:border-red-500 text-red-600 font-bold text-xs">
+                                    <input type="radio" name="edit-severity" value="high" ${student.severity === 'high' ? 'checked' : ''} class="hidden">
+                                    <span>ALTO</span>
+                                </label>
+                                <label class="border-2 border-amber-200 rounded-2xl p-3 text-center cursor-pointer transition-all has-[:checked]:bg-amber-500 has-[:checked]:text-white has-[:checked]:border-amber-500 text-amber-600 font-bold text-xs">
+                                    <input type="radio" name="edit-severity" value="medium" ${student.severity === 'medium' ? 'checked' : ''} class="hidden">
+                                    <span>MEDIO</span>
+                                </label>
+                                <label class="border-2 border-emerald-200 rounded-2xl p-3 text-center cursor-pointer transition-all has-[:checked]:bg-emerald-500 has-[:checked]:text-white has-[:checked]:border-emerald-500 text-emerald-600 font-bold text-xs">
+                                    <input type="radio" name="edit-severity" value="low" ${student.severity === 'low' ? 'checked' : ''} class="hidden">
+                                    <span>BAJO</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Protocolos de Salud / Observaciones</label>
+                            <textarea id="edit-student-info" rows="5" class="w-full px-5 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-xs text-slate-700 leading-relaxed font-normal" required>${student.info}</textarea>
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                            <button type="button" class="cancel-edit bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-3 rounded-xl font-bold text-xs transition-colors">Cancelar</button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold text-xs shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
+                                <i class="fas fa-save"></i>Guardar Cambios
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const stageSelect = document.getElementById('edit-student-stage');
+        const courseSelect = document.getElementById('edit-student-course');
+        const newCourseContainer = document.getElementById('edit-new-course-container');
+
+        stageSelect.addEventListener('change', () => {
+            const st = stageSelect.value;
+            courseSelect.innerHTML = renderCourseOptions(st, '');
+            newCourseContainer.classList.add('hidden');
+        });
+
+        courseSelect.addEventListener('change', () => {
+            const isNew = courseSelect.value === 'new';
+            newCourseContainer.classList.toggle('hidden', !isNew);
+            if (isNew) {
+                document.getElementById('edit-new-course-name')?.focus();
+            }
+        });
+
         document.getElementById('edit-student-form').addEventListener('submit', (e) => this.handleEditSubmit(e));
-        document.querySelector('.cancel-edit').onclick = () => closeModal(modalId);
+        document.querySelectorAll('.cancel-edit').forEach(btn => {
+            btn.onclick = () => closeModal(modalId);
+        });
     }
 
     async handleEditSubmit(e) {
         e.preventDefault();
         const id = document.getElementById('edit-student-id').value;
+        const name = document.getElementById('edit-student-name').value.trim();
+        const stage = document.getElementById('edit-student-stage').value;
+        const courseSelect = document.getElementById('edit-student-course');
+        let course = courseSelect.value === 'new'
+            ? document.getElementById('edit-new-course-name').value.trim()
+            : courseSelect.value;
+
+        if (courseSelect.value === 'new') {
+            if (!course) {
+                showModal('Por favor escribe el nombre del nuevo curso.', 'warning');
+                document.getElementById('edit-new-course-name')?.focus();
+                return;
+            }
+            await this.addCourseDirectly(stage, course, false);
+        }
+
+        if (!course) {
+            showModal('Por favor selecciona un curso.', 'warning');
+            return;
+        }
+
+        const info = document.getElementById('edit-student-info').value.trim();
+        const severity = document.querySelector('input[name="edit-severity"]:checked')?.value || 'low';
+
         const newData = {
-            name: document.getElementById('edit-student-name').value,
-            info: document.getElementById('edit-student-info').value,
-            severity: document.querySelector('input[name="edit-severity"]:checked')?.value
+            name,
+            stage,
+            course,
+            info,
+            severity,
+            updatedAt: serverTimestamp()
         };
 
         try {
+            document.getElementById('loading-overlay').classList.remove('hidden');
             await updateDoc(doc(this.db, this.studentsCollectionRef.path, id), newData);
-            await logAction('UPDATE_STUDENT', { id, after: newData });
+            await logAction('UPDATE_STUDENT', { id, after: { name, stage, course, severity } });
+
+            // Actualizar memoria local al instante
+            const idx = this.allStudents.findIndex(s => s.id === id);
+            if (idx !== -1) {
+                this.allStudents[idx] = { ...this.allStudents[idx], ...newData };
+            }
+            this.processAndRenderData();
+
+            // Refrescar vista del curso
+            this.renderStudentList(stage, course);
+            document.querySelectorAll('.course-btn').forEach(btn => {
+                btn.classList.toggle('course-btn-active', btn.dataset.stage === stage && btn.dataset.course === course);
+            });
+
+            document.getElementById('loading-overlay').classList.add('hidden');
             closeModal('edit-student-modal');
-            showModal('Actualizado correctamente.', 'success');
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Ficha Actualizada',
+                html: `<strong>${name}</strong> ha sido actualizado/a correctamente en <strong>${course}</strong>.`,
+                timer: 2000,
+                showConfirmButton: false,
+                customClass: { popup: 'swal2-popup' }
+            });
         } catch (error) {
-            showModal('Error al actualizar.', 'error');
+            document.getElementById('loading-overlay').classList.add('hidden');
+            console.error("Error al actualizar estudiante:", error);
+            showModal('Error al actualizar: ' + error.message, 'error');
         }
     }
 
@@ -854,10 +1125,15 @@ export class UIManager {
 
     async deleteStudent(id, name) {
         try {
+            document.getElementById('loading-overlay').classList.remove('hidden');
             await deleteDoc(doc(this.db, this.studentsCollectionRef.path, id));
             await logAction('DELETE_STUDENT', { id, name });
+            this.allStudents = this.allStudents.filter(s => s.id !== id);
+            this.processAndRenderData();
+            document.getElementById('loading-overlay').classList.add('hidden');
             showModal('Eliminado correctamente.', 'success');
         } catch (error) {
+            document.getElementById('loading-overlay').classList.add('hidden');
             showModal('No se pudo eliminar.', 'error');
         }
     }
@@ -1173,12 +1449,20 @@ export class UIManager {
         };
 
         try {
-            await addDoc(this.studentsCollectionRef, student);
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            const docRef = await addDoc(this.studentsCollectionRef, student);
             await logAction('CREATE_STUDENT', { name: student.name, course: student.course });
+
+            // Actualizar memoria local al instante
+            this.allStudents.push({ id: docRef.id, ...student });
+            this.processAndRenderData();
+
             this.addStudentForm.reset();
             this.populateCourseDropdown();
+            document.getElementById('loading-overlay').classList.add('hidden');
             showModal(`Alumno añadido con éxito en ${course}.`, 'success');
         } catch (error) {
+            document.getElementById('loading-overlay').classList.add('hidden');
             console.error("Error al añadir estudiante:", error);
             showModal('Error al añadir el registro.', 'error');
         }

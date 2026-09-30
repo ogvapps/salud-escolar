@@ -1,4 +1,4 @@
-const CACHE_NAME = "salud-escolar-v7";
+const CACHE_NAME = "salud-escolar-v8";
 const urlsToCache = [
   "./",
   "./index.html",
@@ -20,7 +20,7 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log("Caching app shell v7...");
+        console.log("Caching app shell v8...");
         return cache.addAll(urlsToCache);
       })
   );
