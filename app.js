@@ -7,6 +7,7 @@ async function startApp() {
         const { db, auth, studentsCollectionRef } = await initFirebase();
         const ui = new UIManager(db, studentsCollectionRef, auth);
         window.app = ui;
+        await ui.initCourses();
 
         function loadLocalData() {
             const flatStudents = [];
@@ -67,7 +68,15 @@ async function startApp() {
 function listenForUpdates(ui, studentsCollectionRef) {
     onSnapshot(studentsCollectionRef,
         (snapshot) => {
-            const allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const allStudents = snapshot.docs
+                .filter(doc => !doc.id.startsWith('_') && !doc.data()?.isMetadata)
+                .map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const coursesDoc = snapshot.docs.find(doc => doc.id === '_metadata_courses');
+            if (coursesDoc && coursesDoc.data()?.courses) {
+                ui.setCustomCourses(coursesDoc.data().courses);
+            }
+
             ui.setStudents(allStudents);
             document.getElementById('loading-overlay').classList.add('hidden');
         },

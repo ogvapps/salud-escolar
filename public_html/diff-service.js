@@ -22,7 +22,8 @@ export function normalizeName(name) {
  */
 export function parseImportedRow(row) {
     const rawName = (row['Nombre del Alumno/a'] || row['Nombre'] || row['Alumno'] || row['Nombre y Apellidos'] || '').trim();
-    const rawGroup = (row['Grupo'] || row['Curso'] || '').trim();
+    const rawGroup = (row['Grupo'] || row['Curso'] || row['Clase'] || '').trim();
+    const rawStageCol = (row['Etapa'] || row['Nivel'] || '').trim();
     const rawStatus = (row['Estado'] || row['Gravedad'] || row['Severidad'] || row['Riesgo'] || '').toLowerCase().trim();
     const rawInfo = (row['Observaciones'] || row['Información'] || row['Patología'] || row['Info'] || 'Sin datos').trim();
 
@@ -30,11 +31,13 @@ export function parseImportedRow(row) {
 
     let stage = 'Primaria';
     const groupLower = rawGroup.toLowerCase();
-    if (groupLower.includes('infantil') || groupLower.includes('inf')) {
+    const stageLower = rawStageCol.toLowerCase();
+
+    if (stageLower.includes('infantil') || groupLower.includes('infantil') || groupLower.includes('inf')) {
         stage = 'Infantil';
-    } else if (groupLower.includes('eso') || groupLower.includes('secundaria')) {
+    } else if (stageLower.includes('eso') || stageLower.includes('secundaria') || groupLower.includes('eso') || groupLower.includes('secundaria')) {
         stage = 'ESO';
-    } else if (groupLower.includes('primaria') || groupLower.includes('pri')) {
+    } else if (stageLower.includes('primaria') || groupLower.includes('primaria') || groupLower.includes('pri')) {
         stage = 'Primaria';
     }
 

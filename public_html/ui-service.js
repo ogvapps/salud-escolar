@@ -1,8 +1,9 @@
 import { updateDoc, addDoc, deleteDoc, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { showModal, showConfirmationModal, closeModal, generatePDF } from "./utils.js";
 import { generateReportData } from "./report-service.js";
-import { loginWithGoogle, logout, logAction, deleteAllStudents, promoteAllStudents, applyDiffSync } from "./firebase-service.js";
+import { loginWithGoogle, logout, logAction, deleteAllStudents, promoteAllStudents, applyDiffSync, getStoredCourses, saveStoredCourses } from "./firebase-service.js";
 import { calculateStudentsDiff, getPromotedCourse } from "./diff-service.js";
+import { DEFAULT_COURSES } from "./data.js";
 
 export class UIManager {
     constructor(db, studentsCollectionRef, auth) {
@@ -15,6 +16,7 @@ export class UIManager {
         this.allStudents = [];
         this.processedData = {};
         this.currentDiffResult = null;
+        this.customCourses = { "Infantil": [], "Primaria": [], "ESO": [] };
 
         // Lista de emails autorizados para el modo Admin
         this.adminWhitelist = [
@@ -55,7 +57,9 @@ export class UIManager {
         this.adminToggleButton = document.getElementById('admin-toggle-btn');
         this.pdfDownloadButton = document.getElementById('pdf-download-btn');
         this.promoteCoursesBtn = document.getElementById('promote-courses-btn');
+        this.manageCoursesBtn = document.getElementById('manage-courses-btn');
         this.clearAllStudentsBtn = document.getElementById('clear-all-students-btn');
+        this.addStudentBtn = document.getElementById('add-student-btn');
         this.studentStageSelect = document.getElementById('student-stage');
         this.studentCourseSelect = document.getElementById('student-course');
         this.newCourseContainer = document.getElementById('new-course-container');
@@ -98,6 +102,9 @@ export class UIManager {
         this.pdfDownloadButton.addEventListener('click', () => generatePDF(this.processedData, this.reportData));
         if (this.promoteCoursesBtn) {
             this.promoteCoursesBtn.addEventListener('click', () => this.handlePromoteCourses());
+        }
+        if (this.manageCoursesBtn) {
+            this.manageCoursesBtn.addEventListener('click', () => this.handleManageCourses());
         }
         if (this.clearAllStudentsBtn) {
             this.clearAllStudentsBtn.addEventListener('click', () => this.handleClearAllStudents());
@@ -210,6 +217,368 @@ export class UIManager {
         }
     }
 
+    async initCourses() {
+        const stored = await getStoredCourses(this.studentsCollectionRef);
+        this.customCourses = stored || { "Infantil": [], "Primaria": [], "ESO": [] };
+        this.renderCourseButtons();
+        this.populateCourseDropdown();
+    }
+
+    setCustomCourses(courses) {
+        if (!courses) return;
+        this.customCourses = courses;
+        this.renderCourseButtons();
+        this.populateCourseDropdown();
+    }
+
+    sortCourses(courses) {
+        return courses.slice().sort((a, b) => {
+            const numA = parseInt(a, 10);
+            const numB = parseInt(b, 10);
+            if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+                return numA - numB;
+            }
+            return a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' });
+        });
+    }
+
+    getAllCourses(stage) {
+        const set = new Set();
+        // 1. Cursos oficiales por defecto
+        (DEFAULT_COURSES[stage] || []).forEach(c => set.add(c));
+        // 2. Cursos personalizados guardados
+        (this.customCourses[stage] || []).forEach(c => set.add(c));
+        // 3. Cursos que existan en los alumnos actuales
+        if (this.processedData && this.processedData[stage]) {
+            Object.keys(this.processedData[stage]).forEach(c => set.add(c));
+        }
+        return this.sortCourses(Array.from(set));
+    }
+
+    async addCourseDirectly(stage, courseName, showFeedback = true) {
+        const name = (courseName || '').trim();
+        if (!name) {
+            if (showFeedback) showModal('El nombre del curso no puede estar vacío.', 'warning');
+            return false;
+        }
+
+        if (!this.customCourses[stage]) {
+            this.customCourses[stage] = [];
+        }
+
+        if (!this.customCourses[stage].includes(name)) {
+            this.customCourses[stage].push(name);
+            await saveStoredCourses(this.studentsCollectionRef, this.customCourses);
+        }
+
+        this.renderCourseButtons();
+        this.populateCourseDropdown();
+
+        if (showFeedback) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Curso Añadido',
+                html: `El curso <strong>${name}</strong> se ha añadido correctamente a <strong>${stage}</strong>.`,
+                timer: 2000,
+                showConfirmButton: false,
+                customClass: { popup: 'swal2-popup' }
+            });
+
+            // Activar la pestaña de esa etapa y seleccionar el curso
+            const stageTab = document.querySelector(`[data-tab="main-tabs"][data-target="${stage.toLowerCase()}"]`);
+            if (stageTab) {
+                stageTab.click();
+                setTimeout(() => {
+                    const btn = document.querySelector(`.course-btn[data-course="${name}"]`);
+                    if (btn) btn.click();
+                }, 100);
+            }
+        }
+        return true;
+    }
+
+    async removeCourseDirectly(stage, courseName) {
+        const studentsCount = (this.processedData[stage]?.[courseName] || []).length;
+        if (studentsCount > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Curso no vacío',
+                text: `No se puede eliminar el curso "${courseName}" porque contiene ${studentsCount} alumno(s). Reubica o elimina los alumnos primero.`,
+                customClass: { popup: 'swal2-popup' }
+            });
+            return;
+        }
+
+        const confirm = await Swal.fire({
+            title: `¿Eliminar curso "${courseName}"?`,
+            text: 'Esta acción quitará el curso de las listas y selectores.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'swal2-popup',
+                confirmButton: 'swal2-confirm bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl',
+                cancelButton: 'swal2-cancel bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl'
+            },
+            buttonsStyling: false
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        if (this.customCourses[stage]) {
+            this.customCourses[stage] = this.customCourses[stage].filter(c => c !== courseName);
+            await saveStoredCourses(this.studentsCollectionRef, this.customCourses);
+        }
+
+        this.renderCourseButtons();
+        this.populateCourseDropdown();
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Curso Eliminado',
+            text: `El curso "${courseName}" ha sido eliminado.`,
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { popup: 'swal2-popup' }
+        });
+    }
+
+    goToAddStudent(stage, course) {
+        const addTab = document.querySelector('[data-tab="main-tabs"][data-target="add-student"]');
+        if (addTab) {
+            addTab.click();
+            setTimeout(() => {
+                if (this.studentStageSelect) {
+                    this.studentStageSelect.value = stage;
+                    this.populateCourseDropdown();
+                }
+                if (this.studentCourseSelect) {
+                    this.studentCourseSelect.value = course;
+                    this.toggleNewCourseInput();
+                }
+                document.getElementById('student-name')?.focus();
+            }, 100);
+        }
+    }
+
+    async promptAddCourse(defaultStage = 'Infantil') {
+        const stage = defaultStage || 'Infantil';
+        const officialCourses = DEFAULT_COURSES[stage] || [];
+        const currentCourses = this.getAllCourses(stage);
+        const missingOfficial = officialCourses.filter(c => !currentCourses.includes(c));
+
+        let suggestionsHtml = '';
+        if (missingOfficial.length > 0) {
+            suggestionsHtml = `
+                <div class="mt-4 text-left">
+                    <p class="text-xs text-slate-500 font-semibold mb-2">Cursos oficiales recomendados:</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${missingOfficial.map(c => `
+                            <button type="button" class="course-chip bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors" data-course="${c}">
+                                + ${c}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        const { value: formValues } = await Swal.fire({
+            title: '➕ Añadir Nuevo Curso',
+            html: `
+                <div class="text-left space-y-4 text-sm text-slate-700">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Etapa Educativa</label>
+                        <select id="swal-course-stage" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:outline-none">
+                            <option value="Infantil" ${stage === 'Infantil' ? 'selected' : ''}>Infantil</option>
+                            <option value="Primaria" ${stage === 'Primaria' ? 'selected' : ''}>Primaria</option>
+                            <option value="ESO" ${stage === 'ESO' ? 'selected' : ''}>ESO</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nombre del Curso / Grupo</label>
+                        <input id="swal-course-name" type="text" placeholder="Ej: 1º Infantil, 1º A Infantil, Aula Específica..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:outline-none font-medium">
+                    </div>
+                    ${suggestionsHtml}
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Crear Curso',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                popup: 'swal2-popup',
+                confirmButton: 'swal2-confirm bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg',
+                cancelButton: 'swal2-cancel bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl'
+            },
+            buttonsStyling: false,
+            didOpen: () => {
+                const input = document.getElementById('swal-course-name');
+                const chips = Swal.getPopup().querySelectorAll('.course-chip');
+                chips.forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        if (input) input.value = chip.dataset.course;
+                    });
+                });
+                if (input) input.focus();
+            },
+            preConfirm: () => {
+                const selectedStage = document.getElementById('swal-course-stage').value;
+                const courseName = document.getElementById('swal-course-name').value.trim();
+                if (!courseName) {
+                    Swal.showValidationMessage('Por favor escribe el nombre del curso');
+                    return false;
+                }
+                return { stage: selectedStage, courseName };
+            }
+        });
+
+        if (formValues) {
+            await this.addCourseDirectly(formValues.stage, formValues.courseName, true);
+        }
+    }
+
+    async handleManageCourses(defaultStage = 'Infantil') {
+        let currentStage = defaultStage || 'Infantil';
+
+        const renderListHtml = (activeStage) => {
+            const courses = this.getAllCourses(activeStage);
+            if (courses.length === 0) {
+                return '<p class="text-slate-400 text-xs italic py-2">No hay cursos en esta etapa.</p>';
+            }
+            return `
+                <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    ${courses.map(c => {
+                        const count = (this.processedData[activeStage]?.[c] || []).length;
+                        return `
+                            <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-slate-800 text-xs">${c}</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${count > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}">
+                                        ${count} alumno${count === 1 ? '' : 's'}
+                                    </span>
+                                </div>
+                                ${count === 0 ? `
+                                    <button type="button" class="del-course-btn text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition-colors" data-stage="${activeStage}" data-course="${c}" title="Eliminar curso">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                ` : `
+                                    <span class="text-[11px] text-slate-400" title="Contiene alumnos"><i class="fas fa-lock text-[10px]"></i></span>
+                                `}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        };
+
+        const updateModalContent = () => {
+            const container = document.getElementById('manage-courses-list-container');
+            if (container) {
+                container.innerHTML = renderListHtml(currentStage);
+                bindDeleteButtons();
+            }
+        };
+
+        const bindDeleteButtons = () => {
+            document.querySelectorAll('.del-course-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const st = btn.dataset.stage;
+                    const cr = btn.dataset.course;
+                    await this.removeCourseDirectly(st, cr);
+                    updateModalContent();
+                });
+            });
+        };
+
+        await Swal.fire({
+            title: '📚 Gestión de Cursos Escolares',
+            html: `
+                <div class="text-left space-y-4 text-sm text-slate-700">
+                    <div class="flex border-b border-slate-200 gap-2 pb-2">
+                        <button type="button" id="tab-stage-infantil" class="stage-nav-btn px-4 py-2 rounded-xl text-xs font-bold transition-all ${currentStage === 'Infantil' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">Infantil</button>
+                        <button type="button" id="tab-stage-primaria" class="stage-nav-btn px-4 py-2 rounded-xl text-xs font-bold transition-all ${currentStage === 'Primaria' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">Primaria</button>
+                        <button type="button" id="tab-stage-eso" class="stage-nav-btn px-4 py-2 rounded-xl text-xs font-bold transition-all ${currentStage === 'ESO' ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">ESO</button>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cursos configurados</span>
+                            <button type="button" id="restore-defaults-btn" class="text-indigo-600 hover:text-indigo-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
+                                <i class="fas fa-undo"></i> Restaurar oficiales
+                            </button>
+                        </div>
+                        <div id="manage-courses-list-container">
+                            ${renderListHtml(currentStage)}
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Añadir nuevo curso a esta etapa</label>
+                        <div class="flex gap-2">
+                            <input id="new-course-modal-input" type="text" placeholder="Ej: 1º Infantil, 1º A..." class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:outline-none text-xs font-medium">
+                            <button type="button" id="add-course-modal-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-indigo-100 transition-all flex items-center gap-1 cursor-pointer">
+                                <i class="fas fa-plus"></i> Añadir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: 'Cerrar',
+            customClass: {
+                popup: 'swal2-popup',
+                confirmButton: 'swal2-confirm bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-xl'
+            },
+            buttonsStyling: false,
+            didOpen: () => {
+                const setStage = (st) => {
+                    currentStage = st;
+                    ['infantil', 'primaria', 'eso'].forEach(s => {
+                        const b = document.getElementById(`tab-stage-${s}`);
+                        if (b) {
+                            if (s === st.toLowerCase()) {
+                                b.className = 'stage-nav-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow';
+                            } else {
+                                b.className = 'stage-nav-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200';
+                            }
+                        }
+                    });
+                    updateModalContent();
+                };
+
+                document.getElementById('tab-stage-infantil')?.addEventListener('click', () => setStage('Infantil'));
+                document.getElementById('tab-stage-primaria')?.addEventListener('click', () => setStage('Primaria'));
+                document.getElementById('tab-stage-eso')?.addEventListener('click', () => setStage('ESO'));
+
+                document.getElementById('add-course-modal-btn')?.addEventListener('click', async () => {
+                    const input = document.getElementById('new-course-modal-input');
+                    const val = input ? input.value.trim() : '';
+                    if (!val) return;
+                    await this.addCourseDirectly(currentStage, val, false);
+                    if (input) input.value = '';
+                    updateModalContent();
+                });
+
+                document.getElementById('restore-defaults-btn')?.addEventListener('click', async () => {
+                    (DEFAULT_COURSES[currentStage] || []).forEach(c => {
+                        if (!this.customCourses[currentStage]) this.customCourses[currentStage] = [];
+                        if (!this.customCourses[currentStage].includes(c)) {
+                            this.customCourses[currentStage].push(c);
+                        }
+                    });
+                    await saveStoredCourses(this.studentsCollectionRef, this.customCourses);
+                    this.renderCourseButtons();
+                    this.populateCourseDropdown();
+                    updateModalContent();
+                });
+
+                bindDeleteButtons();
+            }
+        });
+    }
+
     setStudents(students) {
         this.allStudents = students;
         this.processAndRenderData();
@@ -251,23 +620,37 @@ export class UIManager {
             if (container) {
                 container.innerHTML = '';
                 const coursesData = this.processedData[stage] || {};
-                const courses = Object.keys(coursesData).sort();
+                const courses = this.getAllCourses(stage);
 
                 courses.forEach(course => {
-                    const studentCount = coursesData[course].length;
+                    const studentCount = coursesData[course]?.length || 0;
                     const button = document.createElement('button');
-                    button.className = 'course-btn px-5 py-2 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 flex items-center justify-between w-52';
+                    button.className = 'course-btn px-5 py-3 rounded-2xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 flex items-center justify-between w-56 shadow-sm border border-slate-200 hover:border-indigo-300';
                     button.dataset.stage = stage;
                     button.dataset.course = course;
+
+                    const badgeClass = studentCount > 0
+                        ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                        : 'bg-slate-100 text-slate-500';
+
                     button.innerHTML = `
-                        <span>${course}</span>
-                        <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5 py-1 rounded-full">
+                        <span class="truncate">${course}</span>
+                        <span class="ml-2 text-xs font-black px-2.5 py-1 rounded-full ${badgeClass}">
                             ${studentCount}
                         </span>
                     `;
                     button.addEventListener('click', (e) => this.handleCourseClick(e));
                     container.appendChild(button);
                 });
+
+                if (this.isAdminMode) {
+                    const addCourseBtn = document.createElement('button');
+                    addCourseBtn.className = 'border-2 border-dashed border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50/70 text-indigo-600 px-5 py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all w-56 cursor-pointer';
+                    addCourseBtn.innerHTML = `<i class="fas fa-plus-circle text-sm"></i>Añadir Curso`;
+                    addCourseBtn.title = `Añadir un nuevo curso a ${stage}`;
+                    addCourseBtn.addEventListener('click', () => this.promptAddCourse(stage));
+                    container.appendChild(addCourseBtn);
+                }
             }
         }
     }
@@ -281,11 +664,37 @@ export class UIManager {
     }
 
     renderStudentList(stage, course) {
-        const students = this.processedData?.[stage]?.[course];
+        const students = this.processedData?.[stage]?.[course] || [];
         const report = this.reportData[stage]?.[course];
 
-        if (!students) {
-            this.studentListContainer.innerHTML = '<p class="text-gray-500 text-center p-6">No se encontraron estudiantes.</p>';
+        if (!students || students.length === 0) {
+            this.studentListContainer.innerHTML = `
+                <div class="bg-white p-12 rounded-[2.5rem] shadow-xl border border-slate-100 text-center max-w-2xl mx-auto my-8 space-y-4 animate-fade-in">
+                    <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-800">${course}</h3>
+                    <p class="text-slate-500 text-sm">No hay alumnos con alertas médicas registradas en este curso.</p>
+                    ${this.isAdminMode ? `
+                        <div class="pt-4 flex flex-wrap justify-center gap-3">
+                            <button class="add-student-to-course-btn bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 cursor-pointer">
+                                <i class="fas fa-user-plus"></i>Añadir Alumno a ${course}
+                            </button>
+                            <button class="remove-empty-course-btn bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 px-5 py-3.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer">
+                                <i class="fas fa-trash-alt"></i>Eliminar Curso
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            const addBtn = this.studentListContainer.querySelector('.add-student-to-course-btn');
+            if (addBtn) {
+                addBtn.addEventListener('click', () => this.goToAddStudent(stage, course));
+            }
+            const remBtn = this.studentListContainer.querySelector('.remove-empty-course-btn');
+            if (remBtn) {
+                remBtn.addEventListener('click', () => this.removeCourseDirectly(stage, course));
+            }
             return;
         }
 
@@ -523,11 +932,11 @@ export class UIManager {
         if (isActive) {
             this.adminToggleButton.innerHTML = `<i class="fas fa-lock-open mr-2"></i>Admin Activo`;
             this.adminToggleButton.classList.replace('bg-amber-400', 'bg-green-500');
-            ['pdf-download-btn', 'promote-courses-btn', 'clear-all-students-btn', 'add-student-btn', 'import-data-btn'].forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+            ['pdf-download-btn', 'promote-courses-btn', 'manage-courses-btn', 'clear-all-students-btn', 'add-student-btn', 'import-data-btn'].forEach(id => document.getElementById(id)?.classList.remove('hidden'));
         } else {
             this.adminToggleButton.innerHTML = `<i class="fas fa-user-shield mr-2"></i>Modo Admin`;
             this.adminToggleButton.classList.replace('bg-green-500', 'bg-amber-400');
-            ['pdf-download-btn', 'promote-courses-btn', 'clear-all-students-btn', 'add-student-btn', 'import-data-btn'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+            ['pdf-download-btn', 'promote-courses-btn', 'manage-courses-btn', 'clear-all-students-btn', 'add-student-btn', 'import-data-btn'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
         }
         this.processAndRenderData();
     }
@@ -736,12 +1145,30 @@ export class UIManager {
 
     async handleFormSubmit(e) {
         e.preventDefault();
+        const stage = this.studentStageSelect ? this.studentStageSelect.value : 'Infantil';
+        let course = this.studentCourseSelect.value === 'new' ? this.newCourseNameInput.value.trim() : this.studentCourseSelect.value;
+
+        if (this.studentCourseSelect.value === 'new') {
+            if (!course) {
+                showModal('Por favor, indica el nombre del nuevo curso.', 'warning');
+                if (this.newCourseNameInput) this.newCourseNameInput.focus();
+                return;
+            }
+            // Registrar el nuevo curso en la configuración
+            await this.addCourseDirectly(stage, course, false);
+        }
+
+        if (!course) {
+            showModal('Por favor, selecciona o introduce un curso.', 'warning');
+            return;
+        }
+
         const student = {
-            name: document.getElementById('student-name').value,
-            stage: this.studentStageSelect.value,
-            course: this.studentCourseSelect.value === 'new' ? this.newCourseNameInput.value.trim() : this.studentCourseSelect.value,
-            info: document.getElementById('student-info').value,
-            severity: document.querySelector('input[name="severity"]:checked')?.value,
+            name: document.getElementById('student-name').value.trim(),
+            stage,
+            course,
+            info: document.getElementById('student-info').value.trim(),
+            severity: document.querySelector('input[name="severity"]:checked')?.value || 'low',
             createdAt: serverTimestamp()
         };
 
@@ -750,23 +1177,28 @@ export class UIManager {
             await logAction('CREATE_STUDENT', { name: student.name, course: student.course });
             this.addStudentForm.reset();
             this.populateCourseDropdown();
-            showModal('Añadido con éxito.', 'success');
+            showModal(`Alumno añadido con éxito en ${course}.`, 'success');
         } catch (error) {
-            showModal('Error al añadir.', 'error');
+            console.error("Error al añadir estudiante:", error);
+            showModal('Error al añadir el registro.', 'error');
         }
     }
 
     populateCourseDropdown() {
-        if (!this.studentStageSelect) return;
+        if (!this.studentStageSelect || !this.studentCourseSelect) return;
         const stage = this.studentStageSelect.value;
-        const courses = Object.keys(this.processedData[stage] || {}).sort();
-        this.studentCourseSelect.innerHTML = courses.map(c => `<option value="${c}">${c}</option>`).join('') + '<option value="new">Otro...</option>';
+        const courses = this.getAllCourses(stage);
+        this.studentCourseSelect.innerHTML = courses.map(c => `<option value="${c}">${c}</option>`).join('') + '<option value="new">➕ Otro... (Crear nuevo curso)</option>';
         this.toggleNewCourseInput();
     }
 
     toggleNewCourseInput() {
         if (this.studentCourseSelect && this.newCourseContainer) {
-            this.newCourseContainer.classList.toggle('hidden', this.studentCourseSelect.value !== 'new');
+            const isNew = this.studentCourseSelect.value === 'new';
+            this.newCourseContainer.classList.toggle('hidden', !isNew);
+            if (isNew && this.newCourseNameInput) {
+                setTimeout(() => this.newCourseNameInput.focus(), 50);
+            }
         }
     }
 
@@ -1013,6 +1445,26 @@ export class UIManager {
                 updateModified,
                 deleteRemoved
             });
+
+            // Registrar nuevos cursos traídos por el Excel en la configuración permanente
+            if (this.currentDiffResult) {
+                const incoming = [...(this.currentDiffResult.newStudents || []), ...(this.currentDiffResult.modifiedStudents || []).map(m => m.incoming)];
+                let hasNewCourses = false;
+                incoming.forEach(st => {
+                    if (st && st.stage && st.course) {
+                        if (!this.customCourses[st.stage]) this.customCourses[st.stage] = [];
+                        if (!this.customCourses[st.stage].includes(st.course)) {
+                            this.customCourses[st.stage].push(st.course);
+                            hasNewCourses = true;
+                        }
+                    }
+                });
+                if (hasNewCourses) {
+                    await saveStoredCourses(this.studentsCollectionRef, this.customCourses);
+                    this.renderCourseButtons();
+                    this.populateCourseDropdown();
+                }
+            }
 
             document.getElementById('loading-overlay').classList.add('hidden');
             this.importResults.classList.add('hidden');

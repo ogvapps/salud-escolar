@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, doc, getDocs, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { schoolData } from "./data.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc, setDoc, getDocs, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { schoolData, DEFAULT_COURSES } from "./data.js";
 
 let db, auth;
 let studentsCollectionRef, logsCollectionRef;
@@ -120,10 +120,47 @@ export async function checkAndSeedDatabase(studentsCollectionRef) {
     }
 }
 
+export async function getStoredCourses(studentsCollectionRef) {
+    try {
+        const localCourses = localStorage.getItem('salud_escolar_custom_courses');
+        const defaultCopy = JSON.parse(JSON.stringify(DEFAULT_COURSES));
+        let courses = localCourses ? JSON.parse(localCourses) : defaultCopy;
+
+        try {
+            const metaDocRef = doc(studentsCollectionRef, '_metadata_courses');
+            const snap = await getDoc(metaDocRef);
+            if (snap.exists() && snap.data()?.courses) {
+                courses = snap.data().courses;
+                localStorage.setItem('salud_escolar_custom_courses', JSON.stringify(courses));
+            }
+        } catch (e) {
+            console.warn("Could not fetch remote courses metadata, using local/default:", e);
+        }
+        return courses;
+    } catch (e) {
+        return JSON.parse(JSON.stringify(DEFAULT_COURSES));
+    }
+}
+
+export async function saveStoredCourses(studentsCollectionRef, coursesByStage) {
+    try {
+        localStorage.setItem('salud_escolar_custom_courses', JSON.stringify(coursesByStage));
+        const metaDocRef = doc(studentsCollectionRef, '_metadata_courses');
+        await setDoc(metaDocRef, {
+            isMetadata: true,
+            courses: coursesByStage,
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+    } catch (e) {
+        console.warn("Could not save remote courses metadata:", e);
+    }
+}
+
 export async function deleteAllStudents(studentsCollectionRef) {
     try {
         const querySnapshot = await getDocs(studentsCollectionRef);
-        const docs = querySnapshot.docs;
+        // Excluir documentos de configuración o metadatos
+        const docs = querySnapshot.docs.filter(d => !d.id.startsWith('_') && !d.data()?.isMetadata);
         const total = docs.length;
 
         if (total === 0) {
@@ -161,7 +198,8 @@ export async function deleteAllStudents(studentsCollectionRef) {
 export async function promoteAllStudents(studentsCollectionRef, options = {}) {
     try {
         const querySnapshot = await getDocs(studentsCollectionRef);
-        const docs = querySnapshot.docs;
+        // Excluir metadatos
+        const docs = querySnapshot.docs.filter(d => !d.id.startsWith('_') && !d.data()?.isMetadata);
         const total = docs.length;
 
         if (total === 0) {
