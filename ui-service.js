@@ -1,7 +1,7 @@
 import { updateDoc, addDoc, deleteDoc, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { showModal, showConfirmationModal, closeModal, generatePDF } from "./utils.js?v=2.4";
-import { generateReportData } from "./report-service.js?v=2.4";
-import { loginWithGoogle, logout, logAction, deleteAllStudents, promoteAllStudents, applyDiffSync } from "./firebase-service.js?v=2.4";
+import { showModal, showConfirmationModal, closeModal, generatePDF } from "./utils.js";
+import { generateReportData } from "./report-service.js";
+import { loginWithGoogle, logout, logAction, deleteAllStudents, promoteAllStudents, applyDiffSync } from "./firebase-service.js";
 import { calculateStudentsDiff, getPromotedCourse } from "./diff-service.js";
 
 export class UIManager {

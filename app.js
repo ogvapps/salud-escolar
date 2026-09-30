@@ -1,5 +1,5 @@
-import { initFirebase, onAuthStateChanged, onSnapshot, checkAndSeedDatabase, loginAnonymously } from "./firebase-service.js?v=2.5";
-import { UIManager } from "./ui-service.js?v=2.5";
+import { initFirebase, onAuthStateChanged, onSnapshot, checkAndSeedDatabase, loginAnonymously } from "./firebase-service.js";
+import { UIManager } from "./ui-service.js";
 import { schoolData } from "./data.js";
 
 async function startApp() {

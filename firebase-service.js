@@ -28,6 +28,9 @@ export async function initFirebase() {
 
 export async function loginAnonymously() {
     try {
+        if (!auth) {
+            await initFirebase();
+        }
         if (!auth) return null;
         const result = await signInAnonymously(auth);
         return result.user;
@@ -39,6 +42,10 @@ export async function loginAnonymously() {
 
 export async function loginWithGoogle() {
     try {
+        if (!auth) {
+            console.log("Auth not initialized, calling initFirebase...");
+            await initFirebase();
+        }
         const result = await signInWithPopup(auth, googleProvider);
         const email = (result.user.email || '').toLowerCase().trim();
         const isEducarex = email.endsWith('@educarex.es');
@@ -57,7 +64,12 @@ export async function loginWithGoogle() {
 
 export async function logout() {
     try {
-        await signOut(auth);
+        if (!auth) {
+            await initFirebase();
+        }
+        if (auth) {
+            await signOut(auth);
+        }
     } catch (error) {
         console.error("Logout failed:", error);
         throw error;
