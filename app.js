@@ -93,7 +93,19 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(err => console.log('SW failed', err));
+        navigator.serviceWorker.register('./service-worker.js').then(reg => {
+            reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                if (installingWorker) {
+                    installingWorker.onstatechange = () => {
+                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log("Nueva versión detectada, recargando para aplicar cambios...");
+                            window.location.reload();
+                        }
+                    };
+                }
+            };
+        }).catch(err => console.log('SW failed', err));
     });
 }
 

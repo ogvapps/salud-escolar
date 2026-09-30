@@ -19,7 +19,7 @@ export class UIManager {
         // Lista de emails autorizados para el modo Admin
         this.adminWhitelist = [
             'ogonzalezv01@educarex.es', // Email del responsable principal
-            // Añadir aquí más emails autorizados
+            'orestesgv@gmail.com'        // Administrador técnico
         ];
 
         this.cacheDOMElements();
@@ -152,10 +152,51 @@ export class UIManager {
         } catch (error) {
             document.getElementById('loading-overlay').classList.add('hidden');
             console.error("Google login failed:", error);
-            showModal(
-                'No se pudo completar el acceso con Google (' + (error.code || error.message) + '). Usa el botón "Acceder con PIN de Centro" para entrar directamente sin restricciones.',
-                'info'
-            );
+
+            let errorTitle = 'No se pudo iniciar sesión con Google';
+            let errorHtml = '';
+
+            if (error.code === 'auth/unauthorized-domain') {
+                errorHtml = `
+                    <div class="text-left text-slate-700 text-sm space-y-3">
+                        <p class="font-bold text-red-600">Dominio web no autorizado en Firebase</p>
+                        <p>El dominio actual (<code>${window.location.hostname}</code>) aún no ha sido autorizado en Firebase Console.</p>
+                        <div class="bg-indigo-50 p-3.5 rounded-xl border border-indigo-100 text-xs text-indigo-900 space-y-1">
+                            <p class="font-bold"><i class="fas fa-check-circle text-indigo-600 mr-1"></i> Puedes entrar ya mismo:</p>
+                            <p>Haz clic en el botón azul <strong>"Acceder con PIN de Centro"</strong> para entrar con el PIN del colegio (1234) sin depender de Google.</p>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Para habilitar Google aquí: añade <strong>${window.location.hostname}</strong> en Firebase Console > Authentication > Settings > Authorized domains.</p>
+                    </div>
+                `;
+            } else if (error.code === 'auth/popup-blocked') {
+                errorHtml = `
+                    <div class="text-left text-slate-700 text-sm space-y-2">
+                        <p class="font-bold text-amber-600">Ventana emergente bloqueada</p>
+                        <p>Tu navegador ha bloqueado la ventana emergente de Google. Puedes habilitarla o usar el botón <strong>"Acceder con PIN de Centro"</strong>.</p>
+                    </div>
+                `;
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                errorHtml = `
+                    <div class="text-left text-slate-700 text-sm">
+                        <p>Se cerró la ventana de Google antes de finalizar la identificación.</p>
+                    </div>
+                `;
+            } else {
+                errorHtml = `
+                    <div class="text-left text-slate-700 text-sm space-y-2">
+                        <p>${error.message}</p>
+                        <p class="text-xs text-indigo-700">Recuerda que puedes pulsar <strong>"Acceder con PIN de Centro"</strong> para acceder directamente con el PIN.</p>
+                    </div>
+                `;
+            }
+
+            Swal.fire({
+                icon: 'warning',
+                title: errorTitle,
+                html: errorHtml,
+                confirmButtonText: 'Entendido',
+                customClass: { popup: 'swal2-popup' }
+            });
         }
     }
 
@@ -419,12 +460,11 @@ export class UIManager {
         }
 
         const currentUser = this.auth.currentUser;
-        if (!currentUser) {
-            showModal('Debes estar identificado.', 'error');
-            return;
-        }
+        const userEmail = currentUser && currentUser.email ? currentUser.email.toLowerCase() : null;
+        const isWhitelisted = userEmail && this.adminWhitelist.map(e => e.toLowerCase()).includes(userEmail);
+        const isCenterAccess = !currentUser || currentUser.isAnonymous || !currentUser.email;
 
-        if (this.adminWhitelist.includes(currentUser.email)) {
+        if (isWhitelisted || isCenterAccess) {
             const { value: adminPin } = await Swal.fire({
                 title: '🔐 Acceso Administrativo',
                 html: '<p style="color: #64748b; margin-bottom: 1.5rem;">Introduce tu PIN de administrador</p>',

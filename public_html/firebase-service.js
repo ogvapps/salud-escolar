@@ -40,10 +40,13 @@ export async function loginAnonymously() {
 export async function loginWithGoogle() {
     try {
         const result = await signInWithPopup(auth, googleProvider);
-        const email = result.user.email;
-        if (!email.endsWith('@educarex.es')) {
+        const email = (result.user.email || '').toLowerCase().trim();
+        const isEducarex = email.endsWith('@educarex.es');
+        const isAuthorizedAdmin = ['ogonzalezv01@educarex.es', 'orestesgv@gmail.com'].includes(email);
+
+        if (!isEducarex && !isAuthorizedAdmin) {
             await logout();
-            throw new Error('Solo se permiten cuentas de @educarex.es');
+            throw new Error(`Cuenta no autorizada (${email}). Solo se permiten cuentas de @educarex.es o administradores del sistema.`);
         }
         return result.user;
     } catch (error) {
