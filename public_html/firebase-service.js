@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, doc, getDoc, setDoc, getDocs, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, onSnapshot, doc, getDoc, setDoc, getDocs, writeBatch, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { schoolData, DEFAULT_COURSES } from "./data.js";
+import { getPromotedCourse } from "./diff-service.js";
 
 let db, auth;
 let studentsCollectionRef, logsCollectionRef;
@@ -9,11 +10,21 @@ const googleProvider = new GoogleAuthProvider();
 
 export async function initFirebase() {
     try {
+        if (db && auth && studentsCollectionRef) {
+            return { db, auth, studentsCollectionRef };
+        }
         const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof window.__firebase_config !== 'undefined' ? window.__firebase_config : '{}');
 
         const firebaseApp = initializeApp(firebaseConfig);
-        db = getFirestore(firebaseApp);
+        try {
+            db = initializeFirestore(firebaseApp, {
+                localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+            });
+        } catch (e) {
+            console.warn("Persistent cache fallback:", e);
+            db = getFirestore(firebaseApp);
+        }
         auth = getAuth(firebaseApp);
 
         studentsCollectionRef = collection(db, `artifacts/${appId}/public/data/students`);
@@ -78,19 +89,19 @@ export async function logout() {
 
 export async function logAction(action, details) {
     try {
-        if (!auth.currentUser) return;
+        if (!logsCollectionRef) return;
+        const currentUser = auth?.currentUser;
+        const userIdentifier = currentUser?.email || (currentUser?.isAnonymous ? 'Acceso con PIN de Centro' : 'Usuario autenticado');
         await addDoc(logsCollectionRef, {
-            user: auth.currentUser.email,
+            user: userIdentifier,
             action,
             details,
             timestamp: serverTimestamp()
         });
     } catch (error) {
-        console.error("Logging failed:", error);
+        console.warn("Logging failed (non-critical):", error);
     }
 }
-
-import { getPromotedCourse } from "./diff-service.js";
 
 export async function checkAndSeedDatabase(studentsCollectionRef) {
     try {
@@ -100,6 +111,21 @@ export async function checkAndSeedDatabase(studentsCollectionRef) {
         }
         const querySnapshot = await getDocs(studentsCollectionRef);
         if (querySnapshot.empty) {
+            let hasSeedData = false;
+            for (const stage in schoolData) {
+                if (schoolData[stage]) {
+                    for (const course in schoolData[stage]) {
+                        if (schoolData[stage][course] && schoolData[stage][course].length > 0) {
+                            hasSeedData = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!hasSeedData) {
+                console.log("Database is empty and no seed data configured. Ready for Excel import or manual entry.");
+                return;
+            }
             console.log("Database is empty. Seeding initial data...");
             const batch = writeBatch(db);
             for (const stage in schoolData) {

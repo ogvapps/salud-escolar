@@ -97,14 +97,15 @@ export function generateReportData(students) {
 }
 
 export function summarizeCondition(info) {
+    if (!info || typeof info !== 'string') return 'Sin especificar';
     const lines = info.split('\n');
-    const diseaseLine = lines.find(line => line.toLowerCase().startsWith('enfermedad:'));
+    const diseaseLine = lines.find(line => line && line.toLowerCase().startsWith('enfermedad:'));
     if (diseaseLine) {
-        return diseaseLine.substring('enfermedad:'.length).trim().split(/,|\./)[0];
+        return diseaseLine.substring('enfermedad:'.length).trim().split(/,|\./)[0] || 'Sin especificar';
     }
-    const infoLine = lines.find(line => line.toLowerCase().startsWith('información:'));
+    const infoLine = lines.find(line => line && line.toLowerCase().startsWith('información:'));
     if (infoLine) {
-        return infoLine.substring('información:'.length).trim().split(/,|\./)[0];
+        return infoLine.substring('información:'.length).trim().split(/,|\./)[0] || 'Sin especificar';
     }
-    return info.split(/,|\./)[0];
+    return info.split(/,|\./)[0] || 'Sin patologías';
 }

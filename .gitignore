@@ -1,3 +1,10 @@
 .vercel
 .firebase
 desktop.ini
+backup/
+*.backup.*
+*.bak
+create_backup.mjs
+check_*.mjs
+test_*.mjs
+compare_*.mjs

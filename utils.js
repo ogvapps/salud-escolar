@@ -1,3 +1,13 @@
+export function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 export function showModal(message, type = 'info') {
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4';
@@ -19,7 +29,7 @@ export function showModal(message, type = 'info') {
     modal.innerHTML = `
         <div class="${bgColor} p-8 rounded-xl shadow-2xl text-center max-w-sm transform transition-all scale-105 duration-300">
             <div class="mb-4">${icon}</div>
-            <p class="mb-6 text-lg font-medium ${textColor}">${message}</p>
+            <p class="mb-6 text-lg font-medium ${textColor}">${escapeHtml(message)}</p>
             <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">Cerrar</button>
         </div>
     `;
@@ -37,7 +47,7 @@ export function showConfirmationModal(message, onConfirm) {
                 <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl"></i>
             </div>
             <h3 class="text-xl font-bold text-gray-800 mb-2">Confirmación Requerida</h3>
-            <p class="mb-6 text-gray-600">${message}</p>
+            <p class="mb-6 text-gray-600">${escapeHtml(message)}</p>
             <div class="flex justify-center gap-4">
                 <button id="confirm-cancel" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold">Cancelar</button>
                 <button id="confirm-ok" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold">Eliminar</button>

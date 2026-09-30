@@ -2,6 +2,8 @@ import { initFirebase, onAuthStateChanged, onSnapshot, checkAndSeedDatabase, log
 import { UIManager } from "./ui-service.js";
 import { schoolData } from "./data.js";
 
+let unsubscribeSnapshot = null;
+
 async function startApp() {
     try {
         const { db, auth, studentsCollectionRef } = await initFirebase();
@@ -18,29 +20,28 @@ async function startApp() {
                     });
                 }
             }
-            ui.setStudents(flatStudents);
+            if (flatStudents.length > 0) {
+                ui.setStudents(flatStudents);
+            }
             document.getElementById('loading-overlay').classList.add('hidden');
         }
 
         function unlockWithPin() {
             console.log("Acceso concedido con PIN de Centro");
             document.getElementById('initial-pin-lock').style.display = 'none';
+            document.getElementById('loading-overlay').classList.remove('hidden');
             document.getElementById('app').classList.remove('hidden');
-            loadLocalData();
 
-            loginAnonymously().then(user => {
-                if (user && studentsCollectionRef) {
-                    try {
-                        listenForUpdates(ui, studentsCollectionRef);
-                    } catch (e) {}
-                }
-            }).catch(() => {});
+            loginAnonymously().catch((err) => {
+                console.warn("Inicio anónimo no disponible, cargando datos locales:", err);
+                loadLocalData();
+            });
         }
         window.unlockWithPin = unlockWithPin;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                console.log("User logged in:", user.email || 'Acceso autenticado');
+                console.log("User logged in:", user.email || 'Acceso autenticado (PIN)');
                 document.getElementById('initial-pin-lock').style.display = 'none';
                 document.getElementById('loading-overlay').classList.remove('hidden');
                 document.getElementById('app').classList.remove('hidden');
@@ -49,11 +50,15 @@ async function startApp() {
                     await checkAndSeedDatabase(studentsCollectionRef);
                     listenForUpdates(ui, studentsCollectionRef);
                 } catch (e) {
-                    console.warn("Firestore inaccesible, cargando datos locales:", e);
-                    loadLocalData();
+                    console.warn("Firestore inaccesible o en modo offline:", e);
+                    listenForUpdates(ui, studentsCollectionRef);
                 }
             } else {
                 console.log("No user session.");
+                if (unsubscribeSnapshot) {
+                    unsubscribeSnapshot();
+                    unsubscribeSnapshot = null;
+                }
                 if (document.getElementById('app').classList.contains('hidden')) {
                     document.getElementById('initial-pin-lock').style.display = 'flex';
                 }
@@ -66,7 +71,12 @@ async function startApp() {
 }
 
 function listenForUpdates(ui, studentsCollectionRef) {
-    onSnapshot(studentsCollectionRef,
+    if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+    }
+
+    unsubscribeSnapshot = onSnapshot(studentsCollectionRef,
         (snapshot) => {
             const allStudents = snapshot.docs
                 .filter(doc => !doc.id.startsWith('_') && !doc.data()?.isMetadata)
@@ -80,7 +90,10 @@ function listenForUpdates(ui, studentsCollectionRef) {
             ui.setStudents(allStudents);
             document.getElementById('loading-overlay').classList.add('hidden');
         },
-        (error) => console.error("Snapshot error:", error)
+        (error) => {
+            console.error("Snapshot error:", error);
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
     );
 }
 
@@ -108,13 +121,12 @@ if ('serviceWorker' in navigator) {
                 if (installingWorker) {
                     installingWorker.onstatechange = () => {
                         if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            console.log("Nueva versión detectada, recargando para aplicar cambios...");
-                            window.location.reload();
+                            console.log("Nueva versión disponible en caché.");
                         }
                     };
                 }
             };
-        }).catch(err => console.log('SW failed', err));
+        }).catch(err => console.log('SW registration failed:', err));
     });
 }
 
