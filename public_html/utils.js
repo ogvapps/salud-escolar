@@ -10,7 +10,7 @@ export function escapeHtml(str) {
 
 export function showModal(message, type = 'info') {
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-gray-900/60 backdrop-blur-sm overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4';
     let icon = '';
     let bgColor = 'bg-white';
     let textColor = 'text-gray-800';
@@ -27,10 +27,10 @@ export function showModal(message, type = 'info') {
     }
 
     modal.innerHTML = `
-        <div class="${bgColor} p-8 rounded-xl shadow-2xl text-center max-w-sm transform transition-all scale-105 duration-300">
+        <div class="${bgColor} p-6 sm:p-8 rounded-2xl shadow-2xl text-center w-full max-w-sm transform transition-all duration-300">
             <div class="mb-4">${icon}</div>
-            <p class="mb-6 text-lg font-medium ${textColor}">${escapeHtml(message)}</p>
-            <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">Cerrar</button>
+            <p class="mb-6 text-base sm:text-lg font-medium ${textColor} break-words">${escapeHtml(message)}</p>
+            <button class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-semibold min-h-[44px]">Cerrar</button>
         </div>
     `;
     modal.querySelector('button').onclick = () => modal.remove();
@@ -39,18 +39,18 @@ export function showModal(message, type = 'info') {
 
 export function showConfirmationModal(message, onConfirm) {
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4';
+    modal.className = 'fixed inset-0 bg-gray-900/60 backdrop-blur-sm overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4';
 
     modal.innerHTML = `
-        <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-md transform transition-all scale-105 duration-300">
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl text-center w-full max-w-md transform transition-all duration-300">
             <div class="mb-4">
                 <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl"></i>
             </div>
             <h3 class="text-xl font-bold text-gray-800 mb-2">Confirmación Requerida</h3>
-            <p class="mb-6 text-gray-600">${escapeHtml(message)}</p>
-            <div class="flex justify-center gap-4">
-                <button id="confirm-cancel" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold">Cancelar</button>
-                <button id="confirm-ok" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold">Eliminar</button>
+            <p class="mb-6 text-sm sm:text-base text-gray-600 break-words">${escapeHtml(message)}</p>
+            <div class="flex flex-col-reverse sm:flex-row justify-center gap-3">
+                <button id="confirm-cancel" class="w-full sm:w-auto px-6 py-2.5 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition font-semibold min-h-[44px]">Cancelar</button>
+                <button id="confirm-ok" class="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition font-semibold min-h-[44px]">Eliminar</button>
             </div>
         </div>
     `;

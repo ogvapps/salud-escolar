@@ -734,7 +734,7 @@ export class UIManager {
                 courses.forEach(course => {
                     const studentCount = coursesData[course]?.length || 0;
                     const button = document.createElement('button');
-                    button.className = 'course-btn px-5 py-3 rounded-2xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 flex items-center justify-between w-56 shadow-sm border border-slate-200 hover:border-indigo-300';
+                    button.className = 'course-btn px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 flex items-center justify-between w-full sm:w-52 md:w-56 shadow-sm border border-slate-200 hover:border-indigo-300 text-xs sm:text-sm';
                     button.dataset.stage = stage;
                     button.dataset.course = course;
 
@@ -744,7 +744,7 @@ export class UIManager {
 
                     button.innerHTML = `
                         <span class="truncate">${course}</span>
-                        <span class="ml-2 text-xs font-black px-2.5 py-1 rounded-full ${badgeClass}">
+                        <span class="ml-1.5 sm:ml-2 text-[11px] sm:text-xs font-black px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full ${badgeClass}">
                             ${studentCount}
                         </span>
                     `;
@@ -754,7 +754,7 @@ export class UIManager {
 
                 if (this.isAdminMode) {
                     const addCourseBtn = document.createElement('button');
-                    addCourseBtn.className = 'border-2 border-dashed border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50/70 text-indigo-600 px-5 py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all w-56 cursor-pointer';
+                    addCourseBtn.className = 'border-2 border-dashed border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50/70 text-indigo-600 px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all w-full sm:w-52 md:w-56 cursor-pointer min-h-[42px] sm:min-h-[46px]';
                     addCourseBtn.innerHTML = `<i class="fas fa-plus-circle text-sm"></i>Añadir Curso`;
                     addCourseBtn.title = `Añadir un nuevo curso a ${stage}`;
                     addCourseBtn.addEventListener('click', () => this.promptAddCourse(stage));
@@ -778,18 +778,18 @@ export class UIManager {
 
         if (!students || students.length === 0) {
             this.studentListContainer.innerHTML = `
-                <div class="bg-white p-12 rounded-[2.5rem] shadow-xl border border-slate-100 text-center max-w-2xl mx-auto my-8 space-y-4 animate-fade-in">
-                    <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl">
+                <div class="bg-white p-6 sm:p-12 rounded-2xl sm:rounded-[2.5rem] shadow-xl border border-slate-100 text-center max-w-2xl mx-auto my-6 sm:my-8 space-y-3 sm:space-y-4 animate-fade-in">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 text-emerald-600 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-3 sm:mb-4 text-2xl sm:text-3xl">
                         <i class="fas fa-check-circle"></i>
                     </div>
-                    <h3 class="text-3xl font-black text-slate-800">${course}</h3>
-                    <p class="text-slate-500 text-sm">No hay alumnos con alertas médicas registradas en este curso.</p>
+                    <h3 class="text-2xl sm:text-3xl font-black text-slate-800">${course}</h3>
+                    <p class="text-slate-500 text-xs sm:text-sm">No hay alumnos con alertas médicas registradas en este curso.</p>
                     ${this.isAdminMode ? `
-                        <div class="pt-4 flex flex-wrap justify-center gap-3">
-                            <button class="add-student-to-course-btn bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 cursor-pointer">
+                        <div class="pt-3 sm:pt-4 flex flex-col sm:flex-row justify-center gap-2.5 sm:gap-3">
+                            <button class="add-student-to-course-btn w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 cursor-pointer">
                                 <i class="fas fa-user-plus"></i>Añadir Alumno a ${course}
                             </button>
-                            <button class="remove-empty-course-btn bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 px-5 py-3.5 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer">
+                            <button class="remove-empty-course-btn w-full sm:w-auto bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer">
                                 <i class="fas fa-trash-alt"></i>Eliminar Curso
                             </button>
                         </div>
@@ -810,21 +810,21 @@ export class UIManager {
         let reportHtml = '';
         if (report) {
             reportHtml = `
-                <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-6 rounded-lg mb-8 shadow-md">
-                    <h4 class="text-xl font-bold mb-3 flex items-center"><i class="fas fa-chart-bar mr-3"></i>Recomendaciones del Curso</h4>
+                <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-6 sm:mb-8 shadow-sm sm:shadow-md">
+                    <h4 class="text-lg sm:text-xl font-bold mb-3 flex items-center"><i class="fas fa-chart-bar mr-2.5 sm:mr-3"></i>Recomendaciones del Curso</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         <div>
-                            <h5 class="font-semibold mb-2 text-gray-700">Análisis:</h5>
-                            <p class="text-sm text-gray-600">${report.analysis}</p>
-                            <h5 class="font-semibold mt-4 mb-2 text-gray-700">Riesgos:</h5>
-                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                                <span class="flex items-center"><div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>Alto: ${report.summary.high}</span>
-                                <span class="flex items-center"><div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>Medio: ${report.summary.medium}</span>
+                            <h5 class="font-semibold mb-1 sm:mb-2 text-xs sm:text-sm text-gray-700">Análisis:</h5>
+                            <p class="text-xs sm:text-sm text-gray-600">${report.analysis}</p>
+                            <h5 class="font-semibold mt-3 sm:mt-4 mb-1 sm:mb-2 text-xs sm:text-sm text-gray-700">Riesgos:</h5>
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
+                                <span class="flex items-center"><div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500 mr-2"></div>Alto: ${report.summary.high}</span>
+                                <span class="flex items-center"><div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500 mr-2"></div>Medio: ${report.summary.medium}</span>
                             </div>
                         </div>
                         <div>
-                            <h5 class="font-semibold mb-2 text-gray-700">Protocolos:</h5>
-                            <ul class="list-disc list-inside text-sm text-gray-600">
+                            <h5 class="font-semibold mb-1 sm:mb-2 text-xs sm:text-sm text-gray-700">Protocolos:</h5>
+                            <ul class="list-disc list-inside text-xs sm:text-sm text-gray-600 space-y-1">
                                 ${report.recommendations.map(rec => `<li>${rec}</li>`).join('')}
                             </ul>
                         </div>
@@ -837,15 +837,15 @@ export class UIManager {
         students.sort((a, b) => getWeight(a) - getWeight(b));
 
         this.studentListContainer.innerHTML = `
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 pb-3 sm:pb-4 border-b border-slate-200">
                 <div class="flex items-center gap-3">
-                    <h3 class="text-3xl font-black text-gray-800">${course}</h3>
-                    <span class="bg-indigo-100 text-indigo-800 text-xs font-black px-3 py-1 rounded-full">
+                    <h3 class="text-2xl sm:text-3xl font-black text-gray-800">${course}</h3>
+                    <span class="bg-indigo-100 text-indigo-800 text-xs font-black px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full">
                         ${students.length} alumno${students.length === 1 ? '' : 's'}
                     </span>
                 </div>
                 ${this.isAdminMode ? `
-                    <button class="add-student-to-course-btn bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-200 transition-all flex items-center gap-2 cursor-pointer">
+                    <button class="add-student-to-course-btn w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl sm:rounded-2xl font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2 cursor-pointer">
                         <i class="fas fa-user-plus text-sm"></i>Añadir Alumno a ${course}
                     </button>
                 ` : ''}
@@ -853,7 +853,7 @@ export class UIManager {
         `;
         this.studentListContainer.innerHTML += reportHtml;
         const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+        grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6';
 
         students.forEach(student => grid.appendChild(this.createStudentCard(student)));
         this.studentListContainer.appendChild(grid);
@@ -876,28 +876,28 @@ export class UIManager {
         }
 
         const card = document.createElement('div');
-        card.className = `student-card p-5 ${borderColor} ${cardBgColor}`;
+        card.className = `student-card p-4 sm:p-5 ${borderColor} ${cardBgColor}`;
 
         let adminButtonsHtml = '';
         if (this.isAdminMode) {
             adminButtonsHtml = `
-                <div class="mt-4 pt-4 border-t flex justify-end gap-2">
-                    <button class="edit-btn px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">Editar</button>
-                    <button class="delete-btn px-3 py-2 bg-red-600 text-white rounded-lg text-sm">Borrar</button>
+                <div class="mt-4 pt-3 border-t flex gap-2">
+                    <button class="edit-btn flex-1 sm:flex-initial px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 min-h-[38px]"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="delete-btn flex-1 sm:flex-initial px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 min-h-[38px]"><i class="fas fa-trash-alt"></i> Borrar</button>
                 </div>
             `;
         }
 
         card.innerHTML = `
             <div class="cursor-pointer detail-trigger group">
-                <h4 class="font-bold text-xl group-hover:text-indigo-600 transition-colors">${student.name}</h4>
-                <p class="text-gray-500 text-sm mb-2">${student.course}</p>
+                <h4 class="font-bold text-lg sm:text-xl group-hover:text-indigo-600 transition-colors">${student.name}</h4>
+                <p class="text-gray-500 text-xs sm:text-sm mb-2">${student.course}</p>
                 <div class="mb-3">${alertsHtml}</div>
-                <div class="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-3 text-center group-hover:bg-indigo-50 group-hover:border-indigo-300 transition-all">
-                    <p class="text-xs font-bold text-gray-400 group-hover:text-indigo-500 uppercase tracking-widest">
-                        <i class="fas fa-eye-slash mr-2"></i>Información Protegida
+                <div class="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-3 text-center group-hover:bg-indigo-50 group-hover:border-indigo-300 transition-all">
+                    <p class="text-[11px] sm:text-xs font-bold text-gray-400 group-hover:text-indigo-500 uppercase tracking-widest">
+                        <i class="fas fa-eye-slash mr-1.5 sm:mr-2"></i>Información Protegida
                     </p>
-                    <p class="text-sm text-gray-500 mt-1">Haz clic para ver detalles médicos</p>
+                    <p class="text-xs sm:text-sm text-gray-500 mt-1">Haz clic para ver detalles médicos</p>
                 </div>
             </div>
             ${adminButtonsHtml}
@@ -913,12 +913,12 @@ export class UIManager {
 
     showStudentDetailModal(student) {
         const modalHtml = `
-            <div id="detail-modal-backdrop" class="fixed inset-0 flex items-center justify-center z-50 p-4">
-                <div class="modal-content-container w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8 relative">
-                    <button class="absolute top-5 right-5 text-3xl close-detail"><i class="fas fa-times-circle text-gray-400"></i></button>
-                    <h3 class="text-3xl font-bold mb-6">${student.name}</h3>
-                    <div class="info-section p-6 bg-white rounded-xl shadow-sm">
-                        <p class="text-gray-700 whitespace-pre-line">${student.info}</p>
+            <div id="detail-modal-backdrop" class="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4">
+                <div class="modal-content-container w-full max-w-2xl max-h-[90vh] overflow-y-auto p-5 sm:p-8 relative rounded-2xl sm:rounded-3xl">
+                    <button class="absolute top-4 right-4 sm:top-5 sm:right-5 text-2xl sm:text-3xl close-detail p-1 text-slate-400 hover:text-slate-600 transition-colors"><i class="fas fa-times-circle"></i></button>
+                    <h3 class="text-2xl sm:text-3xl font-black mb-4 sm:mb-6 pr-8 text-indigo-700">${student.name}</h3>
+                    <div class="info-section p-4 sm:p-6 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100">
+                        <p class="text-slate-700 whitespace-pre-line text-sm sm:text-base leading-relaxed">${student.info}</p>
                     </div>
                 </div>
             </div>
@@ -941,35 +941,35 @@ export class UIManager {
         };
 
         const modalHtml = `
-            <div id="${modalId}" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-                <div class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
-                        <div>
+            <div id="${modalId}" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 animate-fade-in">
+                <div class="bg-white p-5 sm:p-8 md:p-10 rounded-2xl sm:rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 mb-4 sm:mb-6">
+                        <div class="pr-2">
                             <span class="text-xs font-black text-indigo-600 uppercase tracking-widest">Edición de Ficha</span>
-                            <h3 class="text-2xl font-black text-slate-800">${student.name}</h3>
+                            <h3 class="text-xl sm:text-2xl font-black text-slate-800 break-words">${student.name}</h3>
                         </div>
-                        <button type="button" class="cancel-edit text-slate-400 hover:text-slate-600 text-2xl cursor-pointer">
+                        <button type="button" class="cancel-edit text-slate-400 hover:text-slate-600 text-2xl p-1 cursor-pointer touch-manipulation">
                             <i class="fas fa-times-circle"></i>
                         </button>
                     </div>
 
-                    <form id="edit-student-form" class="space-y-6">
+                    <form id="edit-student-form" class="space-y-4 sm:space-y-6">
                         <input type="hidden" id="edit-student-id" value="${student.id}">
 
                         <div>
-                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Nombre Completo</label>
-                            <input type="text" id="edit-student-name" class="w-full px-5 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none font-semibold text-slate-800 transition-colors" value="${student.name}" required>
+                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 sm:mb-2">Nombre Completo</label>
+                            <input type="text" id="edit-student-name" class="w-full px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none font-semibold text-slate-800 transition-colors text-sm sm:text-base" value="${student.name}" required>
                         </div>
 
                         <!-- Reasignación de Etapa y Curso -->
-                        <div class="bg-indigo-50/50 border border-indigo-100 p-5 rounded-2xl space-y-4">
+                        <div class="bg-indigo-50/50 border border-indigo-100 p-4 sm:p-5 rounded-2xl space-y-3 sm:space-y-4">
                             <h4 class="text-xs font-black text-indigo-900 uppercase tracking-wider flex items-center gap-2">
                                 <i class="fas fa-exchange-alt text-indigo-600"></i>Reasignar Curso y Etapa
                             </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Etapa Educativa</label>
-                                    <select id="edit-student-stage" class="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:border-indigo-500 focus:outline-none text-xs font-bold text-slate-700">
+                                    <select id="edit-student-stage" class="w-full px-3.5 sm:px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:border-indigo-500 focus:outline-none text-xs font-bold text-slate-700 min-h-[42px]">
                                         <option value="Infantil" ${currentStage === 'Infantil' ? 'selected' : ''}>Infantil</option>
                                         <option value="Primaria" ${currentStage === 'Primaria' ? 'selected' : ''}>Primaria</option>
                                         <option value="ESO" ${currentStage === 'ESO' ? 'selected' : ''}>ESO</option>
@@ -977,29 +977,29 @@ export class UIManager {
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Curso / Grupo</label>
-                                    <select id="edit-student-course" class="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:border-indigo-500 focus:outline-none text-xs font-bold text-slate-700">
+                                    <select id="edit-student-course" class="w-full px-3.5 sm:px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:border-indigo-500 focus:outline-none text-xs font-bold text-slate-700 min-h-[42px]">
                                         ${renderCourseOptions(currentStage, currentCourse)}
                                     </select>
                                 </div>
                             </div>
                             <div id="edit-new-course-container" class="hidden">
                                 <label class="block text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-1">Nombre del nuevo curso</label>
-                                <input type="text" id="edit-new-course-name" class="w-full px-4 py-2.5 rounded-xl border border-indigo-300 bg-white focus:outline-none text-xs font-semibold" placeholder="Ej: 1º Infantil, 1º A...">
+                                <input type="text" id="edit-new-course-name" class="w-full px-3.5 sm:px-4 py-2.5 rounded-xl border border-indigo-300 bg-white focus:outline-none text-xs font-semibold" placeholder="Ej: 1º Infantil, 1º A...">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Nivel de Alerta Médica</label>
-                            <div class="grid grid-cols-3 gap-3">
-                                <label class="border-2 border-red-200 rounded-2xl p-3 text-center cursor-pointer transition-all has-[:checked]:bg-red-500 has-[:checked]:text-white has-[:checked]:border-red-500 text-red-600 font-bold text-xs">
+                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 sm:mb-2">Nivel de Alerta Médica</label>
+                            <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                                <label class="border-2 border-red-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 text-center cursor-pointer transition-all has-[:checked]:bg-red-500 has-[:checked]:text-white has-[:checked]:border-red-500 text-red-600 font-bold text-xs flex items-center justify-center min-h-[44px]">
                                     <input type="radio" name="edit-severity" value="high" ${student.severity === 'high' ? 'checked' : ''} class="hidden">
                                     <span>ALTO</span>
                                 </label>
-                                <label class="border-2 border-amber-200 rounded-2xl p-3 text-center cursor-pointer transition-all has-[:checked]:bg-amber-500 has-[:checked]:text-white has-[:checked]:border-amber-500 text-amber-600 font-bold text-xs">
+                                <label class="border-2 border-amber-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 text-center cursor-pointer transition-all has-[:checked]:bg-amber-500 has-[:checked]:text-white has-[:checked]:border-amber-500 text-amber-600 font-bold text-xs flex items-center justify-center min-h-[44px]">
                                     <input type="radio" name="edit-severity" value="medium" ${student.severity === 'medium' ? 'checked' : ''} class="hidden">
                                     <span>MEDIO</span>
                                 </label>
-                                <label class="border-2 border-emerald-200 rounded-2xl p-3 text-center cursor-pointer transition-all has-[:checked]:bg-emerald-500 has-[:checked]:text-white has-[:checked]:border-emerald-500 text-emerald-600 font-bold text-xs">
+                                <label class="border-2 border-emerald-200 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 text-center cursor-pointer transition-all has-[:checked]:bg-emerald-500 has-[:checked]:text-white has-[:checked]:border-emerald-500 text-emerald-600 font-bold text-xs flex items-center justify-center min-h-[44px]">
                                     <input type="radio" name="edit-severity" value="low" ${student.severity === 'low' ? 'checked' : ''} class="hidden">
                                     <span>BAJO</span>
                                 </label>
@@ -1007,13 +1007,13 @@ export class UIManager {
                         </div>
 
                         <div>
-                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Protocolos de Salud / Observaciones</label>
-                            <textarea id="edit-student-info" rows="5" class="w-full px-5 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-xs text-slate-700 leading-relaxed font-normal" required>${student.info}</textarea>
+                            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 sm:mb-2">Protocolos de Salud / Observaciones</label>
+                            <textarea id="edit-student-info" rows="5" class="w-full px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-xs text-slate-700 leading-relaxed font-normal" required>${student.info}</textarea>
                         </div>
 
-                        <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                            <button type="button" class="cancel-edit bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-3 rounded-xl font-bold text-xs transition-colors">Cancelar</button>
-                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold text-xs shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
+                        <div class="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-3 sm:pt-4 border-t border-slate-100">
+                            <button type="button" class="cancel-edit w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-3 rounded-xl font-bold text-xs transition-colors min-h-[44px]">Cancelar</button>
+                            <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold text-xs shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 min-h-[44px]">
                                 <i class="fas fa-save"></i>Guardar Cambios
                             </button>
                         </div>
@@ -1527,23 +1527,23 @@ export class UIManager {
         let modifiedDetailsHtml = '';
         if (modifiedStudents.length > 0) {
             modifiedDetailsHtml = `
-                <div class="mt-4 border border-amber-200 rounded-2xl bg-amber-50/60 p-5 space-y-3 text-xs">
-                    <h5 class="font-bold text-amber-900 uppercase tracking-wider text-xs flex items-center justify-between">
+                <div class="mt-4 border border-amber-200 rounded-2xl bg-amber-50/60 p-3.5 sm:p-5 space-y-3 text-xs">
+                    <h5 class="font-bold text-amber-900 uppercase tracking-wider text-xs flex flex-wrap items-center justify-between gap-1">
                         <span><i class="fas fa-edit mr-2 text-amber-600"></i>Fichas con Cambios Médicos o de Curso (${modifiedStudents.length})</span>
                         <span class="text-[10px] font-normal text-amber-700">Revisa las modificaciones detectadas</span>
                     </h5>
                     <div class="max-h-72 overflow-y-auto space-y-3 pr-1">
                         ${modifiedStudents.map(m => `
-                            <div class="bg-white p-3.5 rounded-xl shadow-sm border border-amber-100 space-y-2">
-                                <div class="flex items-center justify-between font-bold text-slate-800 text-sm">
-                                    <span>${m.name}</span>
+                            <div class="bg-white p-3 sm:p-3.5 rounded-xl shadow-sm border border-amber-100 space-y-2">
+                                <div class="flex flex-wrap items-center justify-between gap-1.5 font-bold text-slate-800 text-sm">
+                                    <span class="break-words">${m.name}</span>
                                     <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
                                         ${m.existing.course} ${m.existing.course !== m.incoming.course ? `➔ ${m.incoming.course}` : ''}
                                     </span>
                                 </div>
                                 <div class="space-y-1.5 text-slate-600">
                                     ${m.changes.severity ? `
-                                        <div class="flex items-center gap-2">
+                                        <div class="flex flex-wrap items-center gap-2">
                                             <span class="font-semibold text-slate-700">Nivel de Riesgo:</span>
                                             ${severityBadge(m.changes.severity.from)} ➔ ${severityBadge(m.changes.severity.to)}
                                         </div>
@@ -1551,7 +1551,7 @@ export class UIManager {
                                     ${m.changes.info ? `
                                         <div class="mt-1">
                                             <span class="font-semibold text-slate-700">Observaciones / Tratamiento modificado:</span>
-                                            <div class="text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-1 whitespace-pre-line text-slate-700 font-mono">
+                                            <div class="text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-1 whitespace-pre-line text-slate-700 font-mono break-words">
                                                 ${m.incoming.info}
                                             </div>
                                         </div>
@@ -1567,17 +1567,17 @@ export class UIManager {
         let newStudentsHtml = '';
         if (newStudents.length > 0) {
             newStudentsHtml = `
-                <details class="mt-4 border border-emerald-200 rounded-2xl bg-emerald-50/40 p-4 text-xs">
-                    <summary class="font-bold text-emerald-900 cursor-pointer uppercase tracking-wider text-xs flex items-center justify-between">
+                <details class="mt-4 border border-emerald-200 rounded-2xl bg-emerald-50/40 p-3.5 sm:p-4 text-xs">
+                    <summary class="font-bold text-emerald-900 cursor-pointer uppercase tracking-wider text-xs flex flex-wrap items-center justify-between gap-1">
                         <span><i class="fas fa-user-plus mr-2 text-emerald-600"></i>Nuevas Altas detectadas (${newStudents.length})</span>
                         <span class="text-[10px] text-emerald-600 font-normal">Hacer clic para desplegar</span>
                     </summary>
                     <div class="mt-3 max-h-52 overflow-y-auto space-y-1.5 pt-2 pr-1">
                         ${newStudents.map(n => `
-                            <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-100 text-slate-700">
+                            <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-emerald-100 text-slate-700">
                                 <div>
-                                    <span class="font-bold text-slate-800">${n.name}</span>
-                                    <span class="text-slate-400 text-[11px] ml-2 font-medium">(${n.course})</span>
+                                    <span class="font-bold text-slate-800 break-words">${n.name}</span>
+                                    <span class="text-slate-400 text-[11px] ml-1.5 font-medium">(${n.course})</span>
                                 </div>
                                 <div>${severityBadge(n.severity)}</div>
                             </div>
@@ -1590,15 +1590,15 @@ export class UIManager {
         let removedStudentsHtml = '';
         if (removedStudents.length > 0) {
             removedStudentsHtml = `
-                <details class="mt-4 border border-rose-200 rounded-2xl bg-rose-50/40 p-4 text-xs">
-                    <summary class="font-bold text-rose-900 cursor-pointer uppercase tracking-wider text-xs flex items-center justify-between">
+                <details class="mt-4 border border-rose-200 rounded-2xl bg-rose-50/40 p-3.5 sm:p-4 text-xs">
+                    <summary class="font-bold text-rose-900 cursor-pointer uppercase tracking-wider text-xs flex flex-wrap items-center justify-between gap-1">
                         <span><i class="fas fa-user-minus mr-2 text-rose-600"></i>Alumnos actuales no listados en el Excel (${removedStudents.length})</span>
                         <span class="text-[10px] text-rose-600 font-normal">Hacer clic para desplegar</span>
                     </summary>
                     <div class="mt-3 max-h-52 overflow-y-auto space-y-1.5 pt-2 pr-1">
                         ${removedStudents.map(r => `
-                            <div class="flex items-center justify-between bg-white p-2.5 rounded-xl border border-rose-100 text-slate-700">
-                                <span class="font-semibold text-slate-800">${r.name} (${r.course})</span>
+                            <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-rose-100 text-slate-700">
+                                <span class="font-semibold text-slate-800 break-words">${r.name} (${r.course})</span>
                                 <span class="text-rose-600 font-medium text-[11px] bg-rose-50 px-2 py-0.5 rounded border border-rose-100">No incluido</span>
                             </div>
                         `).join('')}
@@ -1608,31 +1608,31 @@ export class UIManager {
         }
 
         this.importResults.innerHTML = `
-            <div class="space-y-6 animate-fade-in">
+            <div class="space-y-4 sm:space-y-6 animate-fade-in">
                 <div class="text-center">
-                    <h4 class="text-2xl font-black text-slate-800">Resultado del Análisis Comparativo</h4>
+                    <h4 class="text-xl sm:text-2xl font-black text-slate-800">Resultado del Análisis Comparativo</h4>
                     <p class="text-xs text-slate-500 mt-1">
                         Alumnos en el archivo entrante: <strong>${totalIncoming}</strong> · Alumnos en la app: <strong>${totalCurrent}</strong>
                     </p>
                 </div>
 
                 <!-- 4 Tarjetas Métricas -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
-                        <div class="text-2xl font-black text-emerald-600">${newStudents.length}</div>
-                        <div class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mt-1">Nuevas Altas</div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center">
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                        <div class="text-xl sm:text-2xl font-black text-emerald-600">${newStudents.length}</div>
+                        <div class="text-[10px] sm:text-[11px] font-bold text-emerald-800 uppercase tracking-wider mt-1">Nuevas Altas</div>
                     </div>
-                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                        <div class="text-2xl font-black text-amber-600">${modifiedStudents.length}</div>
-                        <div class="text-[11px] font-bold text-amber-800 uppercase tracking-wider mt-1">Fichas Modificadas</div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                        <div class="text-xl sm:text-2xl font-black text-amber-600">${modifiedStudents.length}</div>
+                        <div class="text-[10px] sm:text-[11px] font-bold text-amber-800 uppercase tracking-wider mt-1">Fichas Modificadas</div>
                     </div>
-                    <div class="bg-slate-100 border border-slate-200 rounded-2xl p-4">
-                        <div class="text-2xl font-black text-slate-600">${unchangedStudents.length}</div>
-                        <div class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mt-1">Sin Cambios</div>
+                    <div class="bg-slate-100 border border-slate-200 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                        <div class="text-xl sm:text-2xl font-black text-slate-600">${unchangedStudents.length}</div>
+                        <div class="text-[10px] sm:text-[11px] font-bold text-slate-700 uppercase tracking-wider mt-1">Sin Cambios</div>
                     </div>
-                    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4">
-                        <div class="text-2xl font-black text-rose-600">${removedStudents.length}</div>
-                        <div class="text-[11px] font-bold text-rose-800 uppercase tracking-wider mt-1">No Presentes</div>
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                        <div class="text-xl sm:text-2xl font-black text-rose-600">${removedStudents.length}</div>
+                        <div class="text-[10px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider mt-1">No Presentes</div>
                     </div>
                 </div>
 
@@ -1641,7 +1641,7 @@ export class UIManager {
                 ${removedStudentsHtml}
 
                 <!-- Acciones a aplicar -->
-                <div class="bg-slate-100/80 p-5 rounded-2xl space-y-2.5 text-xs text-slate-700 font-medium">
+                <div class="bg-slate-100/80 p-4 sm:p-5 rounded-2xl space-y-2.5 text-xs text-slate-700 font-medium">
                     <div class="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2">Acciones a aplicar en Firestore:</div>
                     <label class="flex items-center gap-2.5 cursor-pointer">
                         <input type="checkbox" id="diff-opt-new" checked class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
@@ -1659,14 +1659,14 @@ export class UIManager {
                     ` : ''}
                 </div>
 
-                <div class="flex flex-col sm:flex-row justify-center gap-4 pt-3">
-                    <button id="apply-diff-btn"
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 transition-all">
-                        <i class="fas fa-check-double"></i>Confirmar y Aplicar Cambios
-                    </button>
+                <div class="flex flex-col-reverse sm:flex-row justify-center gap-3 pt-3">
                     <button id="cancel-diff-btn"
-                        class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-8 py-4 rounded-2xl font-bold text-sm transition-all">
+                        class="w-full sm:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all min-h-[48px]">
                         Cancelar
+                    </button>
+                    <button id="apply-diff-btn"
+                        class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-6 sm:px-10 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest shadow-xl shadow-emerald-200 flex items-center justify-center gap-2 sm:gap-3 transition-all min-h-[48px]">
+                        <i class="fas fa-check-double"></i>Confirmar y Aplicar Cambios
                     </button>
                 </div>
             </div>
